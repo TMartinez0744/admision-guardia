@@ -1,0 +1,15 @@
+[project]
+name = "admision-guardia"
+version = "0.1.0"
+description = "TP final AI Gen - agente de admision de guardia"
+requires-python = ">=3.12"
+dependencies = [
+    "kit-tp-admision",
+]
+
+[tool.uv.sources]
+kit-tp-admision = { path = "../talksmith-ing/missions/admision-guardia" }
+
+# El kit de la catedra se agrega con:
+#   uv add <ruta>/talksmith-ing/missions/admision-guardia
+# No copiar admision/ adentro del repo: la catedra corre con su propia copia.
