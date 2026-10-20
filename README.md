@@ -1,6 +1,6 @@
 # Agente de admision de guardia
 
-TP final — Inteligencia Artificial Generativa — Universidad Austral — Grupo `<numero>`
+TP final — Inteligencia Artificial Generativa — Universidad Austral — Grupo 11
 
 | | |
 |---|---|
