@@ -10,7 +10,10 @@ TP final — Inteligencia Artificial Generativa — Universidad Austral — Grup
 
 Integrantes:
 
-- `<Nombre y apellido>` — `<mail>` — `<usuario de GitHub>`
+- Pedro Del Aguila
+- Celina Arias Duval
+- Elias Ballesteros
+- Trinidad Martinez
 
 Todo lo de abajo se sigue **con el punto de control publicado y sin entrenar**.
 
