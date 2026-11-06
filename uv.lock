@@ -11,12 +11,12 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "kit-tp-admision", directory = "../talksmith-ing/missions/admision-guardia" }]
+requires-dist = [{ name = "kit-tp-admision", directory = "../talksmith-ing/missions/TPFinal" }]
 
 [[package]]
 name = "kit-tp-admision"
 version = "1.1.0"
-source = { directory = "../talksmith-ing/missions/admision-guardia" }
+source = { directory = "../talksmith-ing/missions/TPFinal" }
 dependencies = [
     { name = "pyyaml" },
 ]

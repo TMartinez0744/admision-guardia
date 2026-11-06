@@ -1,7 +1,7 @@
 """Contrato de la entrega.
 
-Es lo unico que llama la catedra. De aca salen el punto de control de Hugging
-Face, el prompt optimizado y el buscador del grupo.
+Punto de entrada unico: de aca salen el punto de control de Hugging Face, el
+prompt optimizado y el buscador.
 
 Libres: el mensaje de sistema, el formato de los mensajes al modelo, la cantidad
 de busquedas y la estrategia.
@@ -9,7 +9,11 @@ Fijos: los nombres y argumentos de las cinco herramientas y los 8 campos de la
 ficha (ver admision/ejemplo.py).
 """
 
-# La catedra baja el modelo de aca y pone HF_TOKEN en el entorno.
+from pathlib import Path
+
+from buscador.bm25 import BuscadorBM25
+
+# El modelo se baja de este repositorio, con HF_TOKEN tomado del entorno.
 # La revision es el commit o la etiqueta exacta del punto de control final.
 MODELO_HF = "<usuario-o-grupo>/<repositorio-del-modelo>"
 REVISION_HF = "<commit o tag>"
@@ -18,8 +22,8 @@ REVISION_HF = "<commit o tag>"
 def construir_buscador(ruta_normas):
     """Arma el buscador con las normas que estan en ``ruta_normas``.
 
-    En el test los numeros de las normas cambian, asi que el buscador se arma
-    siempre con la carpeta que recibe, que es una copia aparte de las normas.
+    Los numeros de las normas cambian entre versiones, asi que el buscador se
+    arma siempre con la carpeta que recibe, que es una copia aparte.
 
     Devuelve un objeto con:
       - ``recuperar(consulta, k)``: lista de mas a menos relevante, de objetos
@@ -29,7 +33,7 @@ def construir_buscador(ruta_normas):
 
     Si una busqueda falla, esa llamada vuelve como error y el caso sigue.
     """
-    raise NotImplementedError
+    return BuscadorBM25(Path(ruta_normas))
 
 
 def construir_agente():

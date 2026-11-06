@@ -1,16 +1,16 @@
 # Costumbres del hospital
 
-Costumbres que no estan escritas en ninguna norma y se descubren mirando el historial.
+Costumbres que no están escritas en ninguna norma y se descubren mirando el historial.
 Cada una va explicada y con los ids de las filas que la respaldan.
 
-## Costumbre 1 — `<titulo>`
+## Costumbre 1 — `<título>`
 
-`<Que hace el hospital, en una o dos frases.>`
+`<Qué hace el hospital, en una o dos frases.>`
 
-- Que la contradice en las normas: `<ninguna / NOR-XXX>`
-- Como la encontramos: `<TODO>`
+- Qué la contradice en las normas: `<ninguna / NOR-XXX>`
+- Cómo la encontramos: `<TODO>`
 - Filas que la respaldan: `<ids>`
 
-## Costumbre 2 — `<titulo>`
+## Costumbre 2 — `<título>`
 
 `<...>`

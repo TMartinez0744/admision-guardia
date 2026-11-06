@@ -1,16 +1,19 @@
-# Agente de admision de guardia
+# Agente de admisión de guardia
 
-TP final — Inteligencia Artificial Generativa — Universidad Austral — Grupo `<numero>`
+Trabajo final — Inteligencia Artificial Generativa — Universidad Austral — **Grupo 11**
 
 | | |
 |---|---|
-| Modelo en Hugging Face | `<link>` — revision del punto de control final: `<revision>` |
+| Modelo en Hugging Face | `<link>` — revisión del punto de control final: `<revisión>` |
 | Proyecto de W&B | `<link>` |
-| Presentacion en Loom | `<link>` |
+| Presentación en Loom | `<link>` |
 
 Integrantes:
 
-- `<Nombre y apellido>` — `<mail>` — `<usuario de GitHub>`
+- Celina Arias Duval — cariasduval@mail.austral.edu.ar — `cmariasduval`
+- Elias Ballesteros — eballesteros@mail.austral.edu.ar — `Elias85974`
+- Pedro Del Aguila — pdelaguila@mail.austral.edu.ar — `pedrodelaguila`
+- Trinidad Martinez — tmartinez1@mail.austral.edu.ar — `TMartinez0744`
 
 Todo lo de abajo se sigue **con el punto de control publicado y sin entrenar**.
 
@@ -21,10 +24,10 @@ uv sync
 cp .env.example .env   # completar con los valores reales
 ```
 
-El kit de la catedra se agrega como dependencia, con la ruta a su carpeta:
+El kit se agrega como dependencia, con la ruta a su carpeta:
 
 ```bash
-uv add <ruta>/talksmith-ing/missions/admision-guardia
+uv add <ruta>/talksmith-ing/missions/TPFinal
 ```
 
 Variables necesarias: ver `.env.example`.
@@ -38,7 +41,7 @@ uv run python -m admision.correr practica --entrega entrega.py \
     --normas <kit>/normas/original --salida corridas/original
 ```
 
-Que se ve: `<TODO: la conversacion, las busquedas en las normas, la ficha registrada y los 9 controles>`
+Qué se ve: `<TODO: la conversación, las búsquedas en las normas, la ficha registrada y los 9 controles>`
 
 ## 3. El buscador
 
@@ -47,17 +50,17 @@ uv run python -m admision.evaluar_rag --entrega entrega.py \
     --normas <kit>/normas/original --consultas <kit>/rag/consultas_dev.jsonl
 ```
 
-## 4. La evaluacion completa
+## 4. La evaluación completa
 
-Los 50 casos de practica con las normas original, b y c, que producen la tabla del informe:
+Los 50 casos de práctica con las normas original, b y c, que producen la tabla del informe:
 
 ```bash
 <TODO: comando>
 ```
 
-## 5. De donde sale cada archivo
+## 5. De dónde sale cada archivo
 
-| Archivo | Lo genera | Configuracion y semilla |
+| Archivo | Lo genera | Configuración y semilla |
 |---|---|---|
 | `historial_clasificado.csv` | `<TODO>` | `<TODO>` |
 | conversaciones de entrenamiento | `<TODO>` | `<TODO>` |
@@ -68,4 +71,4 @@ Volver a entrenar: `<TODO: comando>`. No hace falta para verificar nada de lo de
 
 ## 6. Diagrama
 
-`<TODO: como se conectan el agente, sus cinco herramientas, el buscador y el modelo>`
+`<TODO: cómo se conectan el agente, sus cinco herramientas, el buscador y el modelo>`
