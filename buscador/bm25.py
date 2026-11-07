@@ -1,12 +1,12 @@
 """Buscador BM25 sobre las normas, partidas en parrafos.
 
 El corpus se parte por parrafo (cada "§N.") en vez de por seccion entera: la
-evidencia que mide `admision.evaluar_rag` son oraciones sueltas, asi que un
-chunk mas chico sube la precision sin perder recall, mientras el parrafo entre
+evidencia que mide `admision.evaluar_rag` son oraciones sueltas, así que un
+chunk más chico sube la precisión sin perder recall, mientras el párrafo entre
 completo.
 
-Cada chunk lleva el encabezado de su seccion, para que el agente sepa de donde
-sale, y la linea de valores de los parametros que ese parrafo cita. Los valores
+Cada chunk lleva el encabezado de su sección, para que el agente sepa de dónde
+sale, y la línea de valores de los parámetros que ese párrafo cita. Los valores
 salen siempre de la carpeta que se recibe, porque cambian entre versiones.
 """
 
@@ -51,7 +51,7 @@ class Chunk:
 
 
 def partir(ruta_normas: Path) -> list[Chunk]:
-    """Un chunk por parrafo, con el encabezado de la seccion y sus valores."""
+    """Un chunk por párrafo, con el encabezado de la sección y sus valores."""
     valores = cargar_parametros(ruta_normas)
     chunks: list[Chunk] = []
     for seccion in cargar_normas(ruta_normas):

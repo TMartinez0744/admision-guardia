@@ -6,18 +6,60 @@ lo producen.
 
 ## Parte 1 — Curado e ingeniería de datos
 
-- Cómo clasificamos el historial: `<TODO>`
-- Filas de cada tipo: correcta `<n>`, error `<n>`, ruido `<n>`
-- Cómo encontramos las costumbres: `<TODO>` (el detalle va en `costumbres.md`)
-- Conversaciones de entrenamiento: `<n>` reales, `<n>` sintéticas
+### Cómo clasificamos el historial
 
-### Pistas abiertas
+Las normas escritas que determinan la ficha se codificaron como reglas en `curado/reglas.py`:
+NOR-ADM-01 a NOR-ADM-03 para el registro y la ubicación en el box, NOR-TDE-01 a NOR-TDE-04 para
+el circuito y su plazo, y NOR-COB-01 a NOR-COB-04 para la cobertura y la entidad a notificar. Los
+valores de los parámetros se leen de la carpeta de normas que se recibe, nunca fijos.
 
-- **El plazo que termina en 5.** `plazo_circuito_min` toma dos valores por circuito más dos
-  variantes cinco minutos menores: sepsis 15 y 60, pero también 10 y 55; ECG 10 y también 5;
-  código ACV 10 y también 5. El desvío está repartido parejo entre los 20 operadores (del 12% al
-  29%), así que no es un operador descuidado: o depende de alguna condición del caso, o es una
-  costumbre no escrita. Falta resolverlo.
+Con esas reglas se deriva la ficha que corresponde a cada fila y se compara contra la registrada,
+campo por campo. Una diferencia en cualquiera de los siete campos que las normas determinan es un
+**error**. El octavo campo, `aviso_al_voluntariado`, no lo cubre ninguna norma, así que se compara
+contra la costumbre; apartarse de ella es **ruido**. Lo que no cae en ninguna de las dos es
+**correcta**.
+
+Lo produce `curado/clasificar.py`:
+
+```bash
+uv run python -m curado.clasificar --kit <ruta al kit>
+```
+
+### Filas de cada tipo
+
+| Tipo | Filas | Proporción |
+|---|---|---|
+| correcta | 1600 | 80,0% |
+| error | 240 | 12,0% |
+| ruido | 160 | 8,0% |
+
+Los errores, por campo: `plazo_circuito_min` 97, `registro` 64, `box_antes_del_registro` 61,
+`cobertura` 12, `entidad_a_notificar` 6. Los campos `numero_documento` y `circuito` no tienen
+ningún error en las 2000 filas.
+
+El ruido, por campo: `aviso_al_voluntariado` 151 y `entidad_verificada` 9.
+
+### Cómo encontramos las costumbres
+
+El detalle y la evidencia están en `costumbres.md`. Son dos: el aviso al voluntariado a partir de
+los 75 años sin acompañante, y la elección de la prepaga cuando el paciente presenta dos
+credenciales.
+
+El hallazgo que las destrabó fue mirar el comportamiento **por operador**. En el agregado, el
+aviso al voluntariado parecía casi aleatorio: 17% de las filas, sin ninguna condición que lo
+explicara por encima del 60%. Separando por operador aparece el corte: 17 de los 20 avisan
+únicamente con 75 años o más y sin acompañante, con cero excepciones en 1674 filas, mientras que
+OP-11, OP-17 y OP-04 avisan también fuera de esa situación.
+
+**Las 160 filas de ruido son exactamente las de esos tres operadores**, y ninguna de los otros 17.
+
+Un desvío que al principio parecía costumbre y no lo era: el `plazo_circuito_min` con cinco
+minutos de menos. Lo fija NOR-TDE-04 §1 para los pacientes que llegan en ambulancia, así que las
+97 filas que no lo respetan son errores.
+
+### Conversaciones de entrenamiento
+
+`<TODO>` reales, `<TODO>` sintéticas.
 
 ## Parte 2 — Buscador (RAG)
 
