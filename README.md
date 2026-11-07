@@ -62,8 +62,8 @@ Los 50 casos de práctica con las normas original, b y c, que producen la tabla 
 
 | Archivo | Lo genera | Configuración y semilla |
 |---|---|---|
-| `historial_clasificado.csv` | `<TODO>` | `<TODO>` |
-| conversaciones de entrenamiento | `<TODO>` | `<TODO>` |
+| `historial_clasificado.csv` | `uv run python -m curado.clasificar` | sin aleatoriedad |
+| `datos/conversaciones.jsonl` | `uv run python -m curado.conversaciones` | sin aleatoriedad |
 | prompt optimizado | `<TODO>` | `<TODO>` |
 | cada entrenamiento | `<TODO>` | `<TODO>` |
 

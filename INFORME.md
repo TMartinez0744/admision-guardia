@@ -59,7 +59,27 @@ minutos de menos. Lo fija NOR-TDE-04 §1 para los pacientes que llegan en ambula
 
 ### Conversaciones de entrenamiento
 
-`<TODO>` reales, `<TODO>` sintéticas.
+**1600 reales, 0 sintéticas.**
+
+Cada traza del historial es una lista de pasos; el modelo se entrena con diálogos. `curado/conversaciones.py`
+hace la conversión al formato del agente de ejemplo: mensaje de sistema, pedido inicial, y después un mensaje
+del asistente con cada llamada en JSON seguido de uno del usuario con el resultado, salvo tras
+`registrar_decision`.
+
+```bash
+uv run python -m curado.conversaciones --kit <ruta al kit>
+```
+
+Entraron **solo las 1600 filas correctas**. Las 240 con error enseñarían a violar una norma escrita y las 160
+con ruido, a apartarse de una costumbre. Quedan disponibles para un experimento posterior: las de ruido no
+violan ninguna norma, así que corrigiéndoles el campo que se aparta se podrían sumar 160 ejemplos más y medir
+si el modelo mejora. El script acepta `--tipos` para incluirlas.
+
+Dos controles sobre la salida: las 1600 conversaciones quedaron bien formadas —sistema primero, roles
+alternados y cierre del asistente con `registrar_decision`— y en las 1600 el último mensaje registra
+exactamente la ficha que figura en la traza.
+
+El archivo resultante pesa 18,6 MB y no se versiona: lo regenera el comando de arriba.
 
 ## Parte 2 — Buscador (RAG)
 

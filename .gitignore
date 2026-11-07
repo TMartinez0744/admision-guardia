@@ -6,6 +6,9 @@ __pycache__/
 # salidas de admision.correr
 corridas/
 
+# datos derivados: los regenera curado.conversaciones
+datos/
+
 # pesos y corridas locales
 checkpoints/
 wandb/
