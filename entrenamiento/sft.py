@@ -98,11 +98,14 @@ def main() -> None:
         learning_rate=a.tasa,
         lr_scheduler_type="cosine",
         warmup_steps=10,
-        per_device_train_batch_size=4,
-        gradient_accumulation_steps=max(1, a.lote // 4),
+        # Una conversación por pasada: con el vocabulario de 262k tokens de Gemma, los logits de un
+        # lote grande no entran en 40 GB. El lote efectivo se arma acumulando gradientes.
+        per_device_train_batch_size=1,
+        gradient_accumulation_steps=a.lote,
         gradient_checkpointing=True,
         bf16=True,
-        max_length=4096,
+        # Con el prompt optimizado (1.909 tokens) la conversación más larga ronda los 4.240.
+        max_length=5120,
         # La máscara del asistente viene en los datos (assistant_masks): ver tokenizar().
         assistant_only_loss=False,
         logging_steps=5,
