@@ -20,6 +20,9 @@ from buscador.hibrido import BuscadorHibrido
 MODELO_HF = "google/gemma-4-E4B-it"
 REVISION_HF = "4ecc2ba63bcac23ba4a767fc87025b1450f84c9c"
 
+# Mensaje de sistema: el que eligió la optimización de prompt (Parte 3).
+RUTA_PROMPT = Path(__file__).parent / "prompt" / "sistema_optimizado.txt"
+
 # Contexto maximo por conversacion. Si una conversacion lo supera, vLLM falla.
 MAX_CONTEXTO = 32768
 # Tokens maximos por respuesta del modelo: una llamada a herramienta en JSON.
@@ -67,18 +70,43 @@ def construir_agente():
 
     En operacion el agente no llama a ningún servicio externo.
 
-    Linea de base: el agente de ejemplo de la catedra (``AgenteJSON``, con su
-    mensaje de sistema) sobre vLLM. Decodificacion greedy (temperatura 0) para
-    que la evaluacion sea reproducible.
+    El agente de ejemplo de la cátedra (protocolo JSON) sobre vLLM, con el
+    mensaje de sistema de ``RUTA_PROMPT``. Decodificacion greedy (temperatura 0)
+    para que la evaluacion sea reproducible. Para los experimentos, la variable
+    de entorno ``ADMISION_PROMPT`` apunta a otro archivo de prompt.
     """
-    from admision.ejemplo import AgenteJSON
-    from vllm import LLM, SamplingParams
+    import os
 
-    llm = LLM(model=MODELO_HF, revision=REVISION_HF, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0)
-    parametros = SamplingParams(temperature=0, max_tokens=MAX_RESPUESTA)
+    from prompt.agente import AgenteConPrompt
+
+    sistema = Path(os.environ.get("ADMISION_PROMPT", RUTA_PROMPT)).read_text(encoding="utf-8")
+    return AgenteConPrompt(modelo_lote_de(cargar_modelo()), sistema)
+
+
+def cargar_modelo():
+    """El modelo en vLLM. Lo usan construir_agente y la optimización de prompt."""
+    import os
+
+    # vLLM arranca su motor en otro proceso. Por defecto lo crea con fork, y si el
+    # proceso padre ya tocó CUDA (torch al armar el buscador) el hijo falla con
+    # "CUDA error: initialization error". Con spawn el hijo arranca limpio.
+    os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
+    # El muestreador de FlashInfer se compila al arrancar y necesita nvcc, que la
+    # máquina puede no tener. Sin él, vLLM usa su muestreador de PyTorch.
+    os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
+    from vllm import LLM
+
+    return LLM(model=MODELO_HF, revision=REVISION_HF, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0)
+
+
+def modelo_lote_de(llm, max_tokens: int = MAX_RESPUESTA):
+    """Una función que recibe conversaciones y devuelve una respuesta por cada una, greedy."""
+    from vllm import SamplingParams
+
+    parametros = SamplingParams(temperature=0, max_tokens=max_tokens)
 
     def modelo_lote(conversaciones):
         salidas = llm.chat(conversaciones, parametros, use_tqdm=False)
         return [s.outputs[0].text for s in salidas]
 
-    return AgenteJSON(modelo_lote)
+    return modelo_lote

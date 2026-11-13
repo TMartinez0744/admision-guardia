@@ -1,0 +1,41 @@
+{
+    "caso": "opt-075",
+    "resuelto": false,
+    "parcial": 0.889,
+    "controles": {
+        "registro": false,
+        "numero_documento": true,
+        "box_antes_del_registro": true,
+        "circuito": true,
+        "plazo_circuito_min": true,
+        "cobertura": true,
+        "entidad_a_notificar": true,
+        "aviso_al_voluntariado": true,
+        "verificacion": true
+    },
+    "esperada": {
+        "registro": "definitivo",
+        "numero_documento": "10.473.471",
+        "box_antes_del_registro": true,
+        "circuito": "ecg",
+        "plazo_circuito_min": 20,
+        "cobertura": "prepaga",
+        "entidad_a_notificar": "Prepaga Litoral",
+        "aviso_al_voluntariado": false
+    },
+    "obtenida": {
+        "registro": "provisorio",
+        "numero_documento": "10.473.471",
+        "box_antes_del_registro": true,
+        "circuito": "ecg",
+        "plazo_circuito_min": 20,
+        "cobertura": "prepaga",
+        "entidad_a_notificar": "Prepaga Litoral",
+        "fundamentos": [
+            "NOR-TDE-01"
+        ],
+        "aviso_al_voluntariado": false
+    },
+    "llamadas": 5,
+    "invalidas": 0
+}
