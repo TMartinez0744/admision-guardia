@@ -34,7 +34,10 @@ from peft import LoraConfig
 from transformers import AutoProcessor, AutoTokenizer
 from trl import SFTConfig, SFTTrainer
 
-import entrega
+# El modelo base de todos los entrenamientos: Gemma 4 E4B sin entrenar, fijado a su commit.
+# No se toma de entrega.py, que después apunta al modelo entrenado.
+BASE_HF = "google/gemma-4-E4B-it"
+BASE_REVISION = "4ecc2ba63bcac23ba4a767fc87025b1450f84c9c"
 
 # Solo las proyecciones de atención y MLP del modelo de lenguaje.
 OBJETIVOS_LORA = r".*language_model\.layers\.\d+\.(self_attn\.(q|k|v|o)_proj|mlp\.(gate|up|down)_proj)"
@@ -85,7 +88,7 @@ def main() -> None:
     ap.add_argument("--wandb-proyecto", default="admision-guardia")
     a = ap.parse_args()
 
-    tokenizador = AutoTokenizer.from_pretrained(entrega.MODELO_HF, revision=entrega.REVISION_HF)
+    tokenizador = AutoTokenizer.from_pretrained(BASE_HF, revision=BASE_REVISION)
     datos = load_dataset("json", data_files=str(a.datos), split="train").select_columns(["messages"])
     datos = datos.map(lambda x: tokenizar(x["messages"], tokenizador), remove_columns=["messages"])
     huella = sha256(a.datos)
@@ -126,11 +129,11 @@ def main() -> None:
         hub_private_repo=True,
         hub_strategy="all_checkpoints",
         hub_revision=f"{a.nombre}-checkpoints",
-        model_init_kwargs={"dtype": "bfloat16", "revision": entrega.REVISION_HF},
+        model_init_kwargs={"dtype": "bfloat16", "revision": BASE_REVISION},
     )
     lora = LoraConfig(r=a.rango, lora_alpha=2 * a.rango, lora_dropout=0.05, target_modules=OBJETIVOS_LORA,
                       task_type="CAUSAL_LM")
-    entrenador = SFTTrainer(model=entrega.MODELO_HF, args=configuracion, train_dataset=datos, peft_config=lora)
+    entrenador = SFTTrainer(model=BASE_HF, args=configuracion, train_dataset=datos, peft_config=lora)
     entrenables = sum(p.numel() for p in entrenador.model.parameters() if p.requires_grad)
     if entrenables == 0:
         raise RuntimeError("LoRA no encontró capas: revisar OBJETIVOS_LORA")
@@ -140,7 +143,7 @@ def main() -> None:
 
     wandb.init(project=a.wandb_proyecto, name=a.nombre, config={
         "datos": str(a.datos), "datos_sha256": huella, "datos_hub": repo_datos, "datos_revision": revision_datos,
-        "conversaciones": len(datos), "semilla": a.semilla, "modelo_base": entrega.MODELO_HF, "revision_base": entrega.REVISION_HF, "hub": a.hub,
+        "conversaciones": len(datos), "semilla": a.semilla, "modelo_base": BASE_HF, "revision_base": BASE_REVISION, "hub": a.hub,
         "lora": {"r": a.rango, "alpha": 2 * a.rango, "dropout": 0.05, "objetivos": OBJETIVOS_LORA},
         "parametros_entrenables": entrenables,
     })
@@ -152,7 +155,7 @@ def main() -> None:
     fusionado = entrenador.model.merge_and_unload()
     final = a.salida / "final"
     fusionado.save_pretrained(final, safe_serialization=True)
-    AutoProcessor.from_pretrained(entrega.MODELO_HF, revision=entrega.REVISION_HF).save_pretrained(final)
+    AutoProcessor.from_pretrained(BASE_HF, revision=BASE_REVISION).save_pretrained(final)
     commit = api.upload_folder(repo_id=a.hub, folder_path=str(final),
                                commit_message=f"{a.nombre}: modelo fusionado (datos sha256 {huella[:12]})")
     api.create_tag(a.hub, tag=a.nombre, revision=commit.oid)
