@@ -15,8 +15,15 @@ from buscador.bm25 import BuscadorBM25
 
 # El modelo se baja de este repositorio, con HF_TOKEN tomado del entorno.
 # La revision es el commit o la etiqueta exacta del punto de control final.
-MODELO_HF = "<usuario-o-grupo>/<repositorio-del-modelo>"
-REVISION_HF = "<commit o tag>"
+# Linea de base: Gemma 4 E4B sin entrenar, fijado al commit de Hugging Face.
+# Cuando haya un modelo entrenado, va acá el repositorio del grupo.
+MODELO_HF = "google/gemma-4-E4B-it"
+REVISION_HF = "4ecc2ba63bcac23ba4a767fc87025b1450f84c9c"
+
+# Contexto maximo por conversacion. Si una conversacion lo supera, vLLM falla.
+MAX_CONTEXTO = 32768
+# Tokens maximos por respuesta del modelo: una llamada a herramienta en JSON.
+MAX_RESPUESTA = 512
 
 
 def construir_buscador(ruta_normas):
@@ -57,5 +64,19 @@ def construir_agente():
     buscar_normativa, registrar_decision.
 
     En operacion el agente no llama a ningún servicio externo.
+
+    Linea de base: el agente de ejemplo de la catedra (``AgenteJSON``, con su
+    mensaje de sistema) sobre vLLM. Decodificacion greedy (temperatura 0) para
+    que la evaluacion sea reproducible.
     """
-    raise NotImplementedError
+    from admision.ejemplo import AgenteJSON
+    from vllm import LLM, SamplingParams
+
+    llm = LLM(model=MODELO_HF, revision=REVISION_HF, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0)
+    parametros = SamplingParams(temperature=0, max_tokens=MAX_RESPUESTA)
+
+    def modelo_lote(conversaciones):
+        salidas = llm.chat(conversaciones, parametros, use_tqdm=False)
+        return [s.outputs[0].text for s in salidas]
+
+    return AgenteJSON(modelo_lote)

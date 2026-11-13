@@ -5,6 +5,7 @@ description = "Agente de admision de guardia"
 requires-python = ">=3.12"
 dependencies = [
     "kit-tp-admision",
+    "vllm==0.32.0 ; sys_platform == 'linux'",
 ]
 
 [tool.uv.sources]
