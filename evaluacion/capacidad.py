@@ -58,7 +58,11 @@ def main() -> None:
         print(json.dumps(filas[-1]), flush=True)
 
     a.salida.mkdir(parents=True, exist_ok=True)
-    resumen = {"modelo": entrega.MODELO_HF, "revision": entrega.REVISION_HF, "prompt": str(entrega.RUTA_PROMPT),
+    import os
+
+    resumen = {"modelo": os.environ.get("ADMISION_MODELO", entrega.MODELO_HF),
+               "revision": os.environ.get("ADMISION_REVISION", entrega.REVISION_HF),
+               "prompt": os.environ.get("ADMISION_PROMPT", str(entrega.RUTA_PROMPT)),
                "segundos_carga_agente": round(carga, 1), "lotes": filas}
     (a.salida / "capacidad.json").write_text(json.dumps(resumen, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(resumen, ensure_ascii=False, indent=2))
