@@ -182,7 +182,58 @@ Dos salvedades:
   números de las normas originales, que en b y c no aparecen. Por eso el recall numérico cae de
   1,000 a 0,250, y no porque el buscador empeore.
 
-Cuánto rinde el agente con nuestro buscador: `<TODO: correr la línea base en GPU>`
+### Cuánto rinde el agente con nuestro buscador
+
+Línea base: Gemma 4 E4B sin entrenar, con el agente y el mensaje de sistema de ejemplo de la
+cátedra, y nuestro buscador (bge-m3, `k = 3`), sobre los 50 casos de práctica. Corrió en una A100
+de 40 GB de Modal (`modal_app.py`), en el commit `5d369fd`:
+
+```bash
+uv run modal run modal_app.py --comando "python -m admision.correr practica --entrega entrega.py \
+    --casos ../talksmith-ing/missions/TPFinal/practica/casos.jsonl \
+    --esperadas ../talksmith-ing/missions/TPFinal/practica/esperadas-<versión>.jsonl \
+    --normas ../talksmith-ing/missions/TPFinal/normas/<versión> --salida /cache/corridas/base-<versión>"
+uv run python -m evaluacion.tabla evaluacion/corridas/base
+```
+
+Las trazas completas (cada mensaje que entró y salió del modelo), el resultado caso por caso y los
+tiempos están en `evaluacion/corridas/base-<versión>/`.
+
+| | Original | b | c | Búsquedas por caso | Tokens de contexto por caso |
+|---|---|---|---|---|---|
+| Referencia: BM25 por sección, sin entrenar | 12 | 15 | 12 | | |
+| **Nuestro buscador, sin entrenar** | **11** | **5** | **5** | 1,28 | 4.278 |
+
+Por control, sobre los 50 casos:
+
+| Control | Original | b | c |
+|---|---|---|---|
+| registro | 0,60 | 0,54 | 0,62 |
+| numero_documento | 1,00 | 1,00 | 1,00 |
+| box_antes_del_registro | 0,64 | 0,62 | 0,66 |
+| circuito | 0,94 | 0,98 | 0,96 |
+| plazo_circuito_min | 0,80 | 0,80 | 0,80 |
+| cobertura | 0,80 | 0,84 | 0,74 |
+| entidad_a_notificar | 0,84 | 0,80 | 0,82 |
+| aviso_al_voluntariado | 0,72 | 0,72 | 0,72 |
+| verificacion | 0,80 | 0,82 | 0,78 |
+
+Lo que leemos:
+
+- **La caída de 11 a 5 con b y c no es de un control en particular.** Los nueve controles dan casi
+  igual en las tres versiones; `plazo_circuito_min`, el que más depende de los números, da 0,80 en
+  las tres. Con cada control alrededor del 80%, acertar los nueve juntos es poco probable y unos
+  pocos campos mueven mucho el total: la diferencia entre 11 y 5 es sobre todo varianza de un
+  modelo poco confiable.
+- **El modelo no está usando los números de las normas originales.** De los 70 campos que falla
+  con las normas b, solo 12 coinciden con lo que correspondería con las originales.
+- **Busca poco:** 1,28 búsquedas por caso y 4,9 llamadas en total, así que muchas fichas se deciden
+  sin leer la norma que corresponde. El prompt (Parte 3) y el entrenamiento (Parte 4) apuntan a eso.
+- **`aviso_al_voluntariado` queda en 0,72 en las tres versiones:** es una costumbre que no está
+  escrita en ninguna norma, así que el modelo sin entrenar no tiene cómo saberla.
+- **Contra la referencia, el resultado es algo peor**, sobre todo con b y c. No podemos separar
+  cuánto viene del buscador y cuánto de la varianza: con el modelo sin entrenar, el número que
+  importa es el del agente entrenado.
 
 ## Parte 3 — Optimización de prompt
 
@@ -240,7 +291,7 @@ Casos resueltos sobre los 50 de práctica:
 |---|---|---|---|
 | Referencia, sin entrenar | 12 | 15 | 12 |
 | Referencia, con SFT | 25 | 24 | 25 |
-| Nuestro modelo, sin entrenar | `<TODO>` | `<TODO>` | `<TODO>` |
+| Nuestro modelo, sin entrenar | 11 | 5 | 5 |
 | Solo prompt | `<TODO>` | `<TODO>` | `<TODO>` |
 | Solo entrenamiento | `<TODO>` | `<TODO>` | `<TODO>` |
 | Prompt + entrenamiento | `<TODO>` | `<TODO>` | `<TODO>` |
@@ -251,8 +302,12 @@ Corridas que no funcionaron y por qué: `<TODO>`
 
 - Tiempo de entrenamiento: `<TODO>`
 - VRAM usada: `<TODO>`
-- Costo y tiempo por caso en la A100 de 40 GB: `<TODO>`
-- Casos que procesamos a la vez: `<TODO>`
+- Costo y tiempo por caso en la A100 de 40 GB: con el modelo sin entrenar, los 50 casos juegan a la
+  vez en unos 37 s, o sea **0,74 s por caso**, con 4.278 tokens de contexto por caso. Cargar el
+  modelo tarda 271 s y armar el buscador 50 s, una sola vez por proceso
+  (`evaluacion/corridas/base-<versión>/resumen.json`). `<TODO: costo con el modelo final>`
+- Casos que procesamos a la vez: al evaluar, **los 50 casos en el mismo lote**: vLLM agrupa en cada
+  vuelta las conversaciones que siguen activas. `<TODO: entrenamiento>`
 - Casos simultáneos que tolera en producción: `<TODO>`
 - Proyección de consumo: `<TODO>`
 - Cómo escalaríamos: `<TODO>`
