@@ -89,6 +89,15 @@ def main() -> None:
     datos = load_dataset("json", data_files=str(a.datos), split="train").select_columns(["messages"])
     datos = datos.map(lambda x: tokenizar(x["messages"], tokenizador), remove_columns=["messages"])
     huella = sha256(a.datos)
+
+    # El archivo exacto de conversaciones queda en un repo de datasets privado, con su revisión.
+    api = HfApi()
+    repo_datos = f"{a.hub}-datos"
+    api.create_repo(repo_datos, repo_type="dataset", private=True, exist_ok=True)
+    subida = api.upload_file(path_or_fileobj=str(a.datos), path_in_repo=a.datos.name, repo_id=repo_datos,
+                             repo_type="dataset", commit_message=f"{a.nombre}: {a.datos.name} (sha256 {huella[:12]})")
+    revision_datos = subida.oid
+
     configuracion = SFTConfig(
         output_dir=str(a.salida),
         run_name=a.nombre,
@@ -130,8 +139,8 @@ def main() -> None:
     import wandb
 
     wandb.init(project=a.wandb_proyecto, name=a.nombre, config={
-        "datos": str(a.datos), "datos_sha256": huella, "conversaciones": len(datos), "semilla": a.semilla,
-        "modelo_base": entrega.MODELO_HF, "revision_base": entrega.REVISION_HF, "hub": a.hub,
+        "datos": str(a.datos), "datos_sha256": huella, "datos_hub": repo_datos, "datos_revision": revision_datos,
+        "conversaciones": len(datos), "semilla": a.semilla, "modelo_base": entrega.MODELO_HF, "revision_base": entrega.REVISION_HF, "hub": a.hub,
         "lora": {"r": a.rango, "alpha": 2 * a.rango, "dropout": 0.05, "objetivos": OBJETIVOS_LORA},
         "parametros_entrenables": entrenables,
     })
@@ -144,14 +153,13 @@ def main() -> None:
     final = a.salida / "final"
     fusionado.save_pretrained(final, safe_serialization=True)
     AutoProcessor.from_pretrained(entrega.MODELO_HF, revision=entrega.REVISION_HF).save_pretrained(final)
-    api = HfApi()
     commit = api.upload_folder(repo_id=a.hub, folder_path=str(final),
                                commit_message=f"{a.nombre}: modelo fusionado (datos sha256 {huella[:12]})")
     api.create_tag(a.hub, tag=a.nombre, revision=commit.oid)
 
     resumen = {"nombre": a.nombre, "hub": a.hub, "revision": commit.oid, "etiqueta": a.nombre,
-               "datos": str(a.datos), "datos_sha256": huella, "conversaciones": len(datos), "semilla": a.semilla,
-               "epocas": a.epocas, "tasa": a.tasa, "rango_lora": a.rango, "lote": a.lote,
+               "datos": str(a.datos), "datos_sha256": huella, "datos_hub": repo_datos,
+               "datos_revision": revision_datos, "conversaciones": len(datos), "semilla": a.semilla, "epocas": a.epocas, "tasa": a.tasa, "rango_lora": a.rango, "lote": a.lote,
                "parametros_entrenables": entrenables, "segundos": round(resultado.metrics["train_runtime"], 1),
                "perdida_final": round(resultado.training_loss, 4), "vram_pico_gb": round(vram, 2),
                "wandb": wandb.run.url}
