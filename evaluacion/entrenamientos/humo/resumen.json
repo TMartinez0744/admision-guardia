@@ -1,0 +1,21 @@
+{
+  "nombre": "humo",
+  "hub": "Pedro2204/admision-gemma4-e4b",
+  "revision": "0de30526b9a9157593a70414af7041b7ba924b2a",
+  "etiqueta": "humo",
+  "datos": "/cache/datos/entrenamiento-reales.jsonl",
+  "datos_sha256": "b2c2c9dd0d0977e6f254b4aee62d122648fa7ef185383f138b49c23aafae68fb",
+  "datos_hub": "Pedro2204/admision-gemma4-e4b-datos",
+  "datos_revision": "9552900a53912ac8258aae4a69ce2005008c070a",
+  "conversaciones": 1600,
+  "semilla": 0,
+  "epocas": 0.01,
+  "tasa": 0.0001,
+  "rango_lora": 16,
+  "lote": 8,
+  "parametros_entrenables": 34881536,
+  "segundos": 37.5,
+  "perdida_final": 0.5327,
+  "vram_pico_gb": 17.58,
+  "wandb": "https://forge.coreweave.com/wandb/pdelaguila-universidad-austral/admision-guardia/runs/uuult2g5"
+}

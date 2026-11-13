@@ -1,0 +1,21 @@
+{
+  "nombre": "sft-mixto",
+  "hub": "Pedro2204/admision-gemma4-e4b",
+  "revision": "82c82c42b51ec556a82b4005a64e2a66aeb35fd5",
+  "etiqueta": "sft-mixto",
+  "datos": "/cache/datos/entrenamiento-mixto.jsonl",
+  "datos_sha256": "b38b889ba5e566ef07c5ae5c48a8e8f209acb827038bd1bd7f575c9eb9acd09a",
+  "datos_hub": "Pedro2204/admision-gemma4-e4b-datos",
+  "datos_revision": "a8b7cecf5404aeb5fa77e9cad549755246ede856",
+  "conversaciones": 3200,
+  "semilla": 0,
+  "epocas": 1.0,
+  "tasa": 0.0001,
+  "rango_lora": 16,
+  "lote": 8,
+  "parametros_entrenables": 34881536,
+  "segundos": 5940.8,
+  "perdida_final": 0.0193,
+  "vram_pico_gb": 17.84,
+  "wandb": "https://forge.coreweave.com/wandb/pdelaguila-universidad-austral/admision-guardia/runs/mv502vu9"
+}
