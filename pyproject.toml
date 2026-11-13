@@ -13,6 +13,11 @@ dependencies = [
 [tool.uv.sources]
 kit-tp-admision = { path = "../talksmith-ing/missions/TPFinal" }
 
+[dependency-groups]
+dev = [
+    "modal==1.6.4",
+]
+
 # El kit se agrega con:
 #   uv add <ruta>/talksmith-ing/missions/TPFinal
 # No copiar admision/ adentro del repo: se reemplaza por otra copia al evaluar.
