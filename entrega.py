@@ -72,13 +72,25 @@ def construir_agente():
     que la evaluacion sea reproducible.
     """
     from admision.ejemplo import AgenteJSON
-    from vllm import LLM, SamplingParams
 
-    llm = LLM(model=MODELO_HF, revision=REVISION_HF, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0)
-    parametros = SamplingParams(temperature=0, max_tokens=MAX_RESPUESTA)
+    return AgenteJSON(modelo_lote_de(cargar_modelo()))
+
+
+def cargar_modelo():
+    """El modelo en vLLM. Lo usan construir_agente y la optimización de prompt."""
+    from vllm import LLM
+
+    return LLM(model=MODELO_HF, revision=REVISION_HF, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0)
+
+
+def modelo_lote_de(llm, max_tokens: int = MAX_RESPUESTA):
+    """Una función que recibe conversaciones y devuelve una respuesta por cada una, greedy."""
+    from vllm import SamplingParams
+
+    parametros = SamplingParams(temperature=0, max_tokens=max_tokens)
 
     def modelo_lote(conversaciones):
         salidas = llm.chat(conversaciones, parametros, use_tqdm=False)
         return [s.outputs[0].text for s in salidas]
 
-    return AgenteJSON(modelo_lote)
+    return modelo_lote
