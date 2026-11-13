@@ -1,0 +1,42 @@
+{
+    "caso": "opt-070",
+    "resuelto": false,
+    "parcial": 0.889,
+    "controles": {
+        "registro": false,
+        "numero_documento": true,
+        "box_antes_del_registro": true,
+        "circuito": true,
+        "plazo_circuito_min": true,
+        "cobertura": true,
+        "entidad_a_notificar": true,
+        "aviso_al_voluntariado": true,
+        "verificacion": true
+    },
+    "esperada": {
+        "registro": "provisorio",
+        "numero_documento": "TKP526034",
+        "box_antes_del_registro": true,
+        "circuito": "codigo_acv",
+        "plazo_circuito_min": 10,
+        "cobertura": "sin_cobertura",
+        "entidad_a_notificar": null,
+        "aviso_al_voluntariado": false
+    },
+    "obtenida": {
+        "registro": "definitivo",
+        "numero_documento": "TKP526034",
+        "box_antes_del_registro": true,
+        "circuito": "codigo_acv",
+        "plazo_circuito_min": 10,
+        "cobertura": "sin_cobertura",
+        "entidad_a_notificar": null,
+        "fundamentos": [
+            "NOR-TDE-02",
+            "NOR-COB-03"
+        ],
+        "aviso_al_voluntariado": false
+    },
+    "llamadas": 6,
+    "invalidas": 0
+}

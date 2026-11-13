@@ -1,0 +1,22 @@
+{
+  "semilla": 0,
+  "casos_entrenamiento": 60,
+  "casos_validacion": 40,
+  "max_llamadas": 600,
+  "puntaje_validacion_por_candidato": [
+    0.8445500000000001,
+    0.652825,
+    0.8446,
+    0.8529,
+    0.858475,
+    0.8556750000000001,
+    0.6472249999999999,
+    0.8307249999999999,
+    0.8640000000000001,
+    0.7724,
+    0.8557
+  ],
+  "mejor_candidato": 8,
+  "tokens_prompt_inicial": 615,
+  "tokens_prompt_optimizado": 1909
+}

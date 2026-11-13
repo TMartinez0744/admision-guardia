@@ -1,0 +1,43 @@
+{
+    "caso": "opt-068",
+    "resuelto": false,
+    "parcial": 0.889,
+    "controles": {
+        "registro": true,
+        "numero_documento": true,
+        "box_antes_del_registro": true,
+        "circuito": true,
+        "plazo_circuito_min": true,
+        "cobertura": true,
+        "entidad_a_notificar": true,
+        "aviso_al_voluntariado": false,
+        "verificacion": true
+    },
+    "esperada": {
+        "registro": "definitivo",
+        "numero_documento": "33.955.428",
+        "box_antes_del_registro": true,
+        "circuito": "ninguno",
+        "plazo_circuito_min": null,
+        "cobertura": "art",
+        "entidad_a_notificar": "Andina ART",
+        "aviso_al_voluntariado": true
+    },
+    "obtenida": {
+        "registro": "definitivo",
+        "numero_documento": "33.955.428",
+        "box_antes_del_registro": true,
+        "circuito": "ninguno",
+        "plazo_circuito_min": null,
+        "cobertura": "art",
+        "entidad_a_notificar": "Andina ART",
+        "fundamentos": [
+            "NOR-COB-02",
+            "NOR-COB-02",
+            "NOR-TDE-01"
+        ],
+        "aviso_al_voluntariado": false
+    },
+    "llamadas": 6,
+    "invalidas": 0
+}

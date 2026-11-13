@@ -1,0 +1,42 @@
+{
+    "caso": "opt-095",
+    "resuelto": false,
+    "parcial": 0.778,
+    "controles": {
+        "registro": false,
+        "numero_documento": true,
+        "box_antes_del_registro": false,
+        "circuito": true,
+        "plazo_circuito_min": true,
+        "cobertura": true,
+        "entidad_a_notificar": true,
+        "aviso_al_voluntariado": true,
+        "verificacion": true
+    },
+    "esperada": {
+        "registro": "definitivo",
+        "numero_documento": "18.621.097",
+        "box_antes_del_registro": false,
+        "circuito": "ecg",
+        "plazo_circuito_min": 15,
+        "cobertura": "sin_cobertura",
+        "entidad_a_notificar": null,
+        "aviso_al_voluntariado": false
+    },
+    "obtenida": {
+        "registro": "provisorio",
+        "numero_documento": "18.621.097",
+        "box_antes_del_registro": true,
+        "circuito": "ecg",
+        "plazo_circuito_min": 15,
+        "cobertura": "sin_cobertura",
+        "entidad_a_notificar": null,
+        "fundamentos": [
+            "NOR-COB-03",
+            "NOR-TDE-01"
+        ],
+        "aviso_al_voluntariado": false
+    },
+    "llamadas": 5,
+    "invalidas": 0
+}

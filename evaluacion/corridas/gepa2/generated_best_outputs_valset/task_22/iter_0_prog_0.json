@@ -1,0 +1,41 @@
+{
+    "caso": "opt-083",
+    "resuelto": false,
+    "parcial": 0.556,
+    "controles": {
+        "registro": false,
+        "numero_documento": true,
+        "box_antes_del_registro": true,
+        "circuito": true,
+        "plazo_circuito_min": true,
+        "cobertura": false,
+        "entidad_a_notificar": false,
+        "aviso_al_voluntariado": false,
+        "verificacion": true
+    },
+    "esperada": {
+        "registro": "definitivo",
+        "numero_documento": "43.579.271",
+        "box_antes_del_registro": true,
+        "circuito": "codigo_sepsis",
+        "plazo_circuito_min": 30,
+        "cobertura": "sin_cobertura",
+        "entidad_a_notificar": null,
+        "aviso_al_voluntariado": true
+    },
+    "obtenida": {
+        "registro": "provisorio",
+        "numero_documento": "43.579.271",
+        "box_antes_del_registro": true,
+        "circuito": "codigo_sepsis",
+        "plazo_circuito_min": 30,
+        "cobertura": "obra_social",
+        "entidad_a_notificar": "Obra Social Fluvial",
+        "fundamentos": [
+            "NOR-TDE-03"
+        ],
+        "aviso_al_voluntariado": false
+    },
+    "llamadas": 5,
+    "invalidas": 0
+}
