@@ -8,6 +8,19 @@ queda igual al de la cátedra.
 
 from admision.ejemplo import AgenteJSON, _Partida, mensaje_de_sistema
 
+# El mensaje de la cátedra tiene cuatro bloques separados por una línea en blanco:
+# el rol, las herramientas con sus argumentos, el formato JSON y las normas que aplican.
+_BLOQUES = mensaje_de_sistema().split("\n\n")
+# Herramientas y formato: el contrato con el entorno. No se optimiza.
+CONTRATO = "\n\n".join(_BLOQUES[1:3])
+# Rol y estrategia: lo único que reescribe la optimización de prompt.
+INSTRUCCIONES_CATEDRA = "\n\n".join([_BLOQUES[0], _BLOQUES[3]])
+
+
+def sistema_con(instrucciones: str) -> str:
+    """El mensaje de sistema completo: las instrucciones y después el contrato fijo."""
+    return f"{instrucciones.strip()}\n\n{CONTRATO}"
+
 
 class AgenteConPrompt(AgenteJSON):
     def __init__(self, modelo_lote, sistema: str | None = None, **kwargs):
