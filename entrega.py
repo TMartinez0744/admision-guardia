@@ -96,7 +96,10 @@ def cargar_modelo():
     os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
     from vllm import LLM
 
-    return LLM(model=MODELO_HF, revision=REVISION_HF, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0)
+    # Para comparar puntos de control sin editar este archivo; la cátedra corre con los fijados arriba.
+    modelo = os.environ.get("ADMISION_MODELO", MODELO_HF)
+    revision = os.environ.get("ADMISION_REVISION", REVISION_HF)
+    return LLM(model=modelo, revision=revision, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0)
 
 
 def modelo_lote_de(llm, max_tokens: int = MAX_RESPUESTA):
