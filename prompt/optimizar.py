@@ -28,7 +28,6 @@ from pathlib import Path
 
 import gepa
 from admision.comparar import comparar
-from admision.ejemplo import mensaje_de_sistema
 from admision.entorno import Entorno, VistaDelAgente
 from admision.generador import generar
 from gepa.core.adapter import EvaluationBatch
@@ -36,14 +35,16 @@ from gepa.core.adapter import EvaluationBatch
 import entrega
 from curado.etiquetar import esperada
 from curado.reglas import cargar_parametros
-from prompt.agente import AgenteConPrompt
+from prompt.agente import INSTRUCCIONES_CATEDRA, AgenteConPrompt, sistema_con
 
 VERSIONES = ("original", "b", "c")
 RUTA_PROMPT = Path(__file__).parent / "sistema_optimizado.txt"
 # Los casos rotan entre tres versiones de las normas y el test usa otras: un número
 # escrito en el prompt falla en las demás versiones.
 NOTA_NUMEROS = ("\n(Los plazos, edades y demás valores cambian entre versiones de las normas: el agente los tiene "
-                "que buscar con buscar_normativa. No escribas valores numéricos de las normas en el prompt.)")
+                "que buscar con buscar_normativa. No escribas valores numéricos de las normas en el prompt. "
+                "La lista de herramientas con sus argumentos y el formato JSON se agregan aparte, después de "
+                "estas instrucciones, y no se cambian: escribí solo el rol y la estrategia.)")
 
 
 def armar_casos(kit: Path, semilla: int, n: int) -> list[dict]:
@@ -69,7 +70,7 @@ class AdaptadorAdmision:
     def evaluate(self, batch, candidate, capture_traces=False):
         entornos = [Entorno(d["caso"], self.buscadores[d["version"]]) for d in batch]
         vistas = [VistaDelAgente(e.paciente_id, e.paso) for e in entornos]
-        AgenteConPrompt(self.modelo_lote, candidate["sistema"]).jugar_lote(vistas)
+        AgenteConPrompt(self.modelo_lote, sistema_con(candidate["instrucciones"])).jugar_lote(vistas)
         resultados = [comparar(d["esperada"], e.decision, e.log) for d, e in zip(batch, entornos, strict=True)]
         trazas = [{"log": e.log, "resultado": r} for e, r in zip(entornos, resultados, strict=True)]
         return EvaluationBatch(outputs=resultados, scores=[r["parcial"] for r in resultados],
@@ -94,7 +95,7 @@ class AdaptadorAdmision:
             registros.append({"Inputs": {"llamadas": "\n".join(llamadas)},
                               "Generated Outputs": json.dumps(r["obtenida"], ensure_ascii=False),
                               "Feedback": devolucion})
-        return {"sistema": registros}
+        return {"instrucciones": registros}
 
 
 def main() -> None:
@@ -117,9 +118,9 @@ def main() -> None:
         mensajes = prompt if isinstance(prompt, list) else [{"role": "user", "content": prompt}]
         return reflector_lote([mensajes])[0]
 
-    inicial = mensaje_de_sistema()
+    inicial = sistema_con(INSTRUCCIONES_CATEDRA)
     resultado = gepa.optimize(
-        seed_candidate={"sistema": inicial},
+        seed_candidate={"instrucciones": INSTRUCCIONES_CATEDRA},
         trainset=entrenamiento,
         valset=validacion,
         adapter=AdaptadorAdmision(entrega.modelo_lote_de(llm), buscadores),
@@ -129,8 +130,9 @@ def main() -> None:
         seed=a.semilla,
     )
 
-    ganador = resultado.best_candidate["sistema"]
+    ganador = sistema_con(resultado.best_candidate["instrucciones"])
     RUTA_PROMPT.write_text(ganador, encoding="utf-8")
+    (a.salida / RUTA_PROMPT.name).write_text(ganador, encoding="utf-8")
     tokenizador = llm.get_tokenizer()
     resumen = {
         "semilla": a.semilla,
