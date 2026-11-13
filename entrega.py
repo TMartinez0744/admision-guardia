@@ -78,6 +78,12 @@ def construir_agente():
 
 def cargar_modelo():
     """El modelo en vLLM. Lo usan construir_agente y la optimización de prompt."""
+    import os
+
+    # vLLM arranca su motor en otro proceso. Por defecto lo crea con fork, y si el
+    # proceso padre ya tocó CUDA (torch al armar el buscador) el hijo falla con
+    # "CUDA error: initialization error". Con spawn el hijo arranca limpio.
+    os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
     from vllm import LLM
 
     return LLM(model=MODELO_HF, revision=REVISION_HF, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0)
