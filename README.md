@@ -41,7 +41,31 @@ uv run python -m admision.correr practica --entrega entrega.py \
     --normas <kit>/normas/original --salida corridas/original
 ```
 
-Qué se ve: `<TODO: la conversación, las búsquedas en las normas, la ficha registrada y los 9 controles>`
+Hace falta una GPU con vLLM (Linux). Sin GPU propia, el mismo comando corre en una A100 de 40 GB
+de Modal; las salidas quedan en el volumen y se bajan después:
+
+```bash
+uv run modal run modal_app.py --comando "python -m admision.correr practica --entrega entrega.py \
+    --casos ../talksmith-ing/missions/TPFinal/practica/casos.jsonl \
+    --esperadas ../talksmith-ing/missions/TPFinal/practica/esperadas-original.jsonl \
+    --normas ../talksmith-ing/missions/TPFinal/normas/original --salida /cache/corridas/original"
+uv run modal volume get admision-cache corridas/original corridas/
+```
+
+Qué se ve, en la carpeta de `--salida`:
+
+- `trazas.jsonl`, una línea por caso: `mensajes` es la conversación completa con el modelo (el
+  mensaje de sistema, cada llamada en JSON y cada resultado), y `log` es cada llamada a una
+  herramienta con su resultado. Ahí están las búsquedas en las normas
+  (`buscar_normativa` → los 3 párrafos que trajo el buscador) y la ficha registrada
+  (`registrar_decision`).
+- `resultados.jsonl`, una línea por caso: los 9 controles (`controles`), si quedó resuelto, la ficha
+  esperada y la obtenida.
+- `resumen.json`: casos resueltos, acierto por control, búsquedas, contexto y tiempos.
+
+Por ejemplo, el caso `pev-001` de la línea base (`evaluacion/corridas/base-original/`):
+`leer_triage` → `verificar_afiliacion` (Prepaga Sierra, activa) → `buscar_normativa("dolor torácico
+y prepaga")`, que trae NOR-TDE-01 → `registrar_decision` con circuito `ecg`, y los 9 controles bien.
 
 ## 3. El buscador
 
@@ -55,8 +79,19 @@ uv run python -m admision.evaluar_rag --entrega entrega.py \
 Los 50 casos de práctica con las normas original, b y c, que producen la tabla del informe:
 
 ```bash
-<TODO: comando>
+K=../talksmith-ing/missions/TPFinal
+for v in original b c; do
+  uv run modal run modal_app.py --comando "python -m admision.correr practica --entrega entrega.py \
+      --casos $K/practica/casos.jsonl --esperadas $K/practica/esperadas-$v.jsonl \
+      --normas $K/normas/$v --salida /cache/corridas/<nombre>-$v"
+  uv run modal volume get admision-cache corridas/<nombre>-$v evaluacion/corridas/
+done
+uv run python -m evaluacion.tabla evaluacion/corridas/<nombre>
 ```
+
+`evaluacion.tabla` lee los tres `resumen.json` y escribe la fila de la tabla: casos resueltos por
+versión, búsquedas, contexto y segundos por caso. Las corridas de cada número del informe están en
+`evaluacion/corridas/`, con todas sus conversaciones.
 
 ## 5. De dónde sale cada archivo
 
@@ -64,11 +99,40 @@ Los 50 casos de práctica con las normas original, b y c, que producen la tabla 
 |---|---|---|
 | `historial_clasificado.csv` | `uv run python -m curado.clasificar` | sin aleatoriedad |
 | `datos/conversaciones.jsonl` | `uv run python -m curado.conversaciones` | sin aleatoriedad |
-| prompt optimizado | `<TODO>` | `<TODO>` |
+| `prompt/sistema_optimizado.txt` | `uv run python -m prompt.optimizar --kit <kit> --salida corridas/gepa` | semilla 0, 60 + 40 casos generados, 600 casos jugados |
 | cada entrenamiento | `<TODO>` | `<TODO>` |
 
 Volver a entrenar: `<TODO: comando>`. No hace falta para verificar nada de lo de arriba.
 
 ## 6. Diagrama
 
-`<TODO: cómo se conectan el agente, sus cinco herramientas, el buscador y el modelo>`
+```mermaid
+flowchart LR
+    subgraph entrega["entrega.py"]
+        agente["Agente<br/>(bucle JSON: una herramienta por turno)"]
+        modelo["Gemma 4 E4B en vLLM<br/>(A100 40 GB)"]
+        buscador["Buscador<br/>bge-m3 sobre párrafos de las normas, k = 3<br/>(CPU)"]
+    end
+    subgraph entorno["Entorno de la cátedra (admision)"]
+        triage["leer_triage"]
+        preguntar["preguntar"]
+        verificar["verificar_afiliacion"]
+        buscar["buscar_normativa"]
+        registrar["registrar_decision"]
+    end
+    normas[("normas/&lt;versión&gt;<br/>secciones + parametros.yaml")]
+
+    agente -- "conversación" --> modelo
+    modelo -- "{herramienta, argumentos}" --> agente
+    agente --> triage & preguntar & verificar & buscar & registrar
+    buscar -- "consulta" --> buscador
+    buscador -- "3 párrafos con sus valores" --> buscar
+    normas --> buscador
+    registrar -- "ficha: 8 campos" --> fin(["fin del caso"])
+```
+
+1. El agente le pasa la conversación al modelo, que responde una llamada a herramienta en JSON.
+2. El agente la ejecuta en el entorno y agrega el resultado a la conversación como mensaje del usuario.
+3. `buscar_normativa` llama al buscador del grupo, armado con la carpeta de normas que se recibe:
+   los números cambian entre versiones y nunca están en los pesos ni en el prompt.
+4. El caso termina con `registrar_decision`, o al llegar a 40 llamadas.

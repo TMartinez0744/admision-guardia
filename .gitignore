@@ -4,7 +4,7 @@ __pycache__/
 *.pyc
 
 # salidas de admision.correr
-corridas/
+/corridas/
 
 # datos derivados: los regenera curado.conversaciones
 datos/

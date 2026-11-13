@@ -1,0 +1,42 @@
+{
+    "caso": "opt-091",
+    "resuelto": false,
+    "parcial": 0.778,
+    "controles": {
+        "registro": false,
+        "numero_documento": true,
+        "box_antes_del_registro": true,
+        "circuito": true,
+        "plazo_circuito_min": true,
+        "cobertura": true,
+        "entidad_a_notificar": true,
+        "aviso_al_voluntariado": true,
+        "verificacion": false
+    },
+    "esperada": {
+        "registro": "provisorio",
+        "numero_documento": null,
+        "box_antes_del_registro": true,
+        "circuito": "codigo_acv",
+        "plazo_circuito_min": 10,
+        "cobertura": "prepaga",
+        "entidad_a_notificar": "Prepaga Cumbre",
+        "aviso_al_voluntariado": false
+    },
+    "obtenida": {
+        "registro": "definitivo",
+        "numero_documento": null,
+        "box_antes_del_registro": true,
+        "circuito": "codigo_acv",
+        "plazo_circuito_min": 10,
+        "cobertura": "prepaga",
+        "entidad_a_notificar": "Prepaga Cumbre",
+        "fundamentos": [
+            "NOR-TDE-02",
+            "NOR-COB-02"
+        ],
+        "aviso_al_voluntariado": false
+    },
+    "llamadas": 5,
+    "invalidas": 0
+}

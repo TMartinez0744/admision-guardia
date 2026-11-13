@@ -182,16 +182,185 @@ Dos salvedades:
   números de las normas originales, que en b y c no aparecen. Por eso el recall numérico cae de
   1,000 a 0,250, y no porque el buscador empeore.
 
-Cuánto rinde el agente con nuestro buscador: `<TODO: correr la línea base en GPU>`
+### Cuánto rinde el agente con nuestro buscador
+
+Línea base: Gemma 4 E4B sin entrenar, con el agente y el mensaje de sistema de ejemplo de la
+cátedra, y nuestro buscador (bge-m3, `k = 3`), sobre los 50 casos de práctica. Corrió en una A100
+de 40 GB de Modal (`modal_app.py`), en el commit `5d369fd`:
+
+```bash
+uv run modal run modal_app.py --comando "python -m admision.correr practica --entrega entrega.py \
+    --casos ../talksmith-ing/missions/TPFinal/practica/casos.jsonl \
+    --esperadas ../talksmith-ing/missions/TPFinal/practica/esperadas-<versión>.jsonl \
+    --normas ../talksmith-ing/missions/TPFinal/normas/<versión> --salida /cache/corridas/base-<versión>"
+uv run python -m evaluacion.tabla evaluacion/corridas/base
+```
+
+Las trazas completas (cada mensaje que entró y salió del modelo), el resultado caso por caso y los
+tiempos están en `evaluacion/corridas/base-<versión>/`.
+
+| | Original | b | c | Búsquedas por caso | Tokens de contexto por caso |
+|---|---|---|---|---|---|
+| Referencia: BM25 por sección, sin entrenar | 12 | 15 | 12 | | |
+| **Nuestro buscador, sin entrenar** | **11** | **5** | **5** | 1,28 | 4.278 |
+
+Por control, sobre los 50 casos:
+
+| Control | Original | b | c |
+|---|---|---|---|
+| registro | 0,60 | 0,54 | 0,62 |
+| numero_documento | 1,00 | 1,00 | 1,00 |
+| box_antes_del_registro | 0,64 | 0,62 | 0,66 |
+| circuito | 0,94 | 0,98 | 0,96 |
+| plazo_circuito_min | 0,80 | 0,80 | 0,80 |
+| cobertura | 0,80 | 0,84 | 0,74 |
+| entidad_a_notificar | 0,84 | 0,80 | 0,82 |
+| aviso_al_voluntariado | 0,72 | 0,72 | 0,72 |
+| verificacion | 0,80 | 0,82 | 0,78 |
+
+Lo que leemos:
+
+- **La caída de 11 a 5 con b y c no es de un control en particular.** Los nueve controles dan casi
+  igual en las tres versiones; `plazo_circuito_min`, el que más depende de los números, da 0,80 en
+  las tres. Con cada control alrededor del 80%, acertar los nueve juntos es poco probable y unos
+  pocos campos mueven mucho el total: la diferencia entre 11 y 5 es sobre todo varianza de un
+  modelo poco confiable.
+- **El modelo no está usando los números de las normas originales.** De los 70 campos que falla
+  con las normas b, solo 12 coinciden con lo que correspondería con las originales.
+- **Busca poco:** 1,28 búsquedas por caso y 4,9 llamadas en total, así que muchas fichas se deciden
+  sin leer la norma que corresponde. El prompt (Parte 3) y el entrenamiento (Parte 4) apuntan a eso.
+- **`aviso_al_voluntariado` queda en 0,72 en las tres versiones:** es una costumbre que no está
+  escrita en ninguna norma, así que el modelo sin entrenar no tiene cómo saberla.
+- **Contra la referencia, el resultado es algo peor**, sobre todo con b y c. No podemos separar
+  cuánto viene del buscador y cuánto de la varianza: con el modelo sin entrenar, el número que
+  importa es el del agente entrenado.
 
 ## Parte 3 — Optimización de prompt
 
-Con el modelo **sin entrenar**:
+### Cómo optimizamos
 
-| | Casos resueltos | Largo del prompt (tokens) |
-|---|---|---|
-| Antes de optimizar | `<TODO>` | `<TODO>` |
-| Después de optimizar | `<TODO>` | `<TODO>` |
+Usamos **GEPA** (`gepa==0.1.4`), el optimizador que sugiere la consigna, sobre el mensaje de
+sistema del agente de ejemplo. GEPA juega casos con un prompt candidato, junta en qué controles
+falló cada uno y le pide a un modelo reflector que proponga una versión mejor. Se queda con las
+que mejoran en un conjunto de validación.
+
+- **El reflector es la misma Gemma 4 E4B** del agente, en la misma A100: no pagamos ninguna API.
+- **Casos para optimizar: 100 generados** con `admision.generador` (semilla 0), 60 para proponer y
+  40 para validar. Los 50 de práctica no se tocan, porque con ellos se mide el antes y el después.
+- **La respuesta de cada caso generado la calcula `curado/etiquetar.py`** con las reglas y
+  costumbres de la Parte 1. Antes de usarlo lo controlamos con los 50 casos de práctica: da
+  **50/50 fichas iguales a las de la cátedra con las normas original, b y c**. Eso también
+  confirma las reglas y costumbres de la Parte 1.
+
+  ```bash
+  uv run python -m curado.etiquetar --kit <ruta al kit>
+  ```
+
+- **Las normas rotan** entre original, b y c, una por caso. Un prompt que escriba un número de las
+  normas falla en las otras dos versiones, y además la devolución al reflector le pide no
+  escribirlos.
+- **El puntaje de un caso** es la fracción de los 9 controles que pasa, no solo resuelto o no: así
+  GEPA distingue una ficha casi bien de una vacía.
+- `prompt/agente.py` es el agente de la cátedra con el mensaje de sistema como parámetro; el
+  protocolo JSON no cambia.
+
+```bash
+uv run python -m prompt.optimizar --kit <ruta al kit> --salida corridas/gepa
+```
+
+Deja el prompt ganador en `prompt/sistema_optimizado.txt` y los registros de GEPA y
+`resultado.json` en `--salida`. Antes de correrlo en GPU, lo probamos de punta a punta en CPU con un
+modelo falso, para controlar el circuito: el entorno, el puntaje, la devolución y el guardado.
+
+### Primera pasada: el reflector rompía el contrato (no funcionó)
+
+La primera versión optimizaba el mensaje de sistema entero. En la A100, **todos los prompts que
+propuso Gemma como reflector sacaron 0,0** en su minilote: al reescribir, borraba la lista de
+herramientas con sus argumentos exactos (`a_quien`, `tema`, los valores permitidos de cada campo),
+el agente ya no podía armar llamadas válidas y no registraba ninguna ficha. La cortamos a las 9
+iteraciones, sin ningún candidato aceptado.
+
+### Segunda pasada: solo las instrucciones
+
+Partimos el mensaje en dos (`prompt/agente.py`): el **contrato** con el entorno (las herramientas,
+sus argumentos y el formato JSON), que queda fijo, y las **instrucciones** (el rol y la estrategia),
+que es lo único que reescribe GEPA. La devolución al reflector aclara que el contrato se agrega
+aparte. El prompt inicial es el de la cátedra con el rol y la lista de normas antes del contrato
+(`prompt/sistema_inicial.txt`).
+
+Corrida en una A100 de 40 GB de Modal, en el commit `6d6e9ce`, con semilla 0, 60 + 40 casos
+generados y 600 casos jugados. Toda la salida de GEPA está en `evaluacion/corridas/gepa2/`
+(`resultado.json`, `candidates.json`, `run_log.txt`).
+
+```bash
+uv run modal run modal_app.py --comando "python -m prompt.optimizar --kit ../talksmith-ing/missions/TPFinal \
+    --salida /cache/corridas/gepa2"
+```
+
+Puntaje en los 40 casos de validación, como fracción de los 9 controles, de los 11 candidatos:
+
+| Candidato | 0 (inicial) | 1 | 2 | 3 | 4 | 5 | 6 | 7 | **8** | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Puntaje | 0,845 | 0,653 | 0,845 | 0,853 | 0,858 | 0,856 | 0,647 | 0,831 | **0,864** | 0,772 | 0,856 |
+
+Lo que observamos:
+
+- **Reordenar ya mejora.** El prompt inicial tiene el mismo texto que el de la cátedra, pero con el
+  rol y las normas antes de las herramientas. En la primera pasada, con el orden de la cátedra, el
+  mismo conjunto de validación daba 0,795; reordenado da 0,845.
+- **GEPA suma poco sobre eso:** el mejor candidato, el 8, llega a 0,864.
+- **El prompt ganador es 3 veces más largo: 1.909 tokens contra 615.** Tiene reglas que aprendió de
+  los errores y son correctas: la afiliación inactiva cuenta como sin cobertura y no se notifica, en
+  ambulancia se resta P-TDE-5, y en un accidente de trabajo prevalece la ART. No escribe ningún valor
+  de las normas. Pero también tiene reglas confusas o equivocadas, que salen de un reflector chico:
+  la de `box_antes_del_registro` se contradice, cita NOR-INT-05 (de otra área del hospital) y trata
+  el aviso al voluntariado como "falso salvo que una norma diga lo contrario", cuando es una costumbre.
+
+### Resultados
+
+Con el modelo **sin entrenar**, sobre los 50 casos de práctica y las tres versiones de normas.
+Cada fila sale de `uv run python -m evaluacion.tabla evaluacion/corridas/<corrida>`, con el commit
+`2ce3280` y el prompt que indica (`ADMISION_PROMPT`):
+
+| Prompt | Original | b | c | Total | Largo del prompt (tokens) | Tokens de contexto por caso | Segundos por caso |
+|---|---|---|---|---|---|---|---|
+| Antes: el de la cátedra (`base`) | 11 | 5 | 5 | 21 / 150 | 615 | 4.278 | 0,74 |
+| Inicial reordenado (`ini`) | 7 | 7 | 11 | 25 / 150 | 615 | 4.641 | 0,79 |
+| **Después: optimizado por GEPA (`opt`)** | **13** | **15** | **13** | **41 / 150** | **1.909** | **11.044** | **0,82** |
+
+Acierto por control, promedio de las tres versiones:
+
+| Control | Cátedra | Reordenado | Optimizado |
+|---|---|---|---|
+| registro | 0,59 | 0,62 | 0,61 |
+| box_antes_del_registro | 0,64 | 0,76 | **0,93** |
+| circuito | 0,96 | 0,98 | 0,96 |
+| plazo_circuito_min | 0,80 | 0,86 | **0,92** |
+| cobertura | 0,79 | 0,79 | 0,84 |
+| entidad_a_notificar | 0,82 | 0,83 | 0,86 |
+| aviso_al_voluntariado | 0,72 | 0,72 | 0,72 |
+| verificacion | 0,80 | 0,90 | 0,80 |
+
+Lo que sacamos en limpio:
+
+- **El prompt optimizado casi duplica los casos resueltos (41 contra 21) y la mejora se sostiene con
+  las tres versiones de normas.** Con b y c pasa de 5 a 15 y 13, igual o por encima de la referencia
+  sin entrenar de la cátedra (12, 15, 12).
+- **La ganancia está en `box_antes_del_registro` (0,64 → 0,93) y en `plazo_circuito_min` (0,80 →
+  0,92)**, justo las reglas que GEPA escribió a partir de los errores (la edad del box y el descuento
+  por ambulancia, leyendo el valor de la norma).
+- **Reordenar solo no alcanza:** 25 contra 21, dentro de la varianza. En validación el orden parecía
+  ayudar (0,795 → 0,845), pero en los casos de práctica no se sostiene.
+- **`aviso_al_voluntariado` no se mueve (0,72):** un prompt no puede enseñar una costumbre que no
+  está escrita en ninguna norma. Eso es trabajo del entrenamiento (Parte 4).
+- **El costo es el largo.** El prompt pasa de 615 a 1.909 tokens y, como se repite en cada llamada,
+  el contexto por caso sube de 4.278 a 11.044 tokens; en la A100 el tiempo por caso casi no cambia
+  (0,82 s contra 0,74 s), pero ocupa más memoria de caché y alarga cada conversación de
+  entrenamiento. Lo aceptamos porque duplica los casos resueltos; un trabajo futuro es pedirle al
+  reflector que también acorte, por ejemplo con el largo como segundo objetivo de GEPA.
+
+Desde acá `entrega.py` usa `prompt/sistema_optimizado.txt`, y el entrenamiento se hace con ese
+prompt, como pide la consigna.
 
 ## Parte 4 — Entrenamiento
 
@@ -203,8 +372,8 @@ Casos resueltos sobre los 50 de práctica:
 |---|---|---|---|
 | Referencia, sin entrenar | 12 | 15 | 12 |
 | Referencia, con SFT | 25 | 24 | 25 |
-| Nuestro modelo, sin entrenar | `<TODO>` | `<TODO>` | `<TODO>` |
-| Solo prompt | `<TODO>` | `<TODO>` | `<TODO>` |
+| Nuestro modelo, sin entrenar | 11 | 5 | 5 |
+| Solo prompt | 13 | 15 | 13 |
 | Solo entrenamiento | `<TODO>` | `<TODO>` | `<TODO>` |
 | Prompt + entrenamiento | `<TODO>` | `<TODO>` | `<TODO>` |
 
@@ -214,8 +383,12 @@ Corridas que no funcionaron y por qué: `<TODO>`
 
 - Tiempo de entrenamiento: `<TODO>`
 - VRAM usada: `<TODO>`
-- Costo y tiempo por caso en la A100 de 40 GB: `<TODO>`
-- Casos que procesamos a la vez: `<TODO>`
+- Costo y tiempo por caso en la A100 de 40 GB: con el modelo sin entrenar, los 50 casos juegan a la
+  vez en unos 37 s, o sea **0,74 s por caso**, con 4.278 tokens de contexto por caso. Cargar el
+  modelo tarda 271 s y armar el buscador 50 s, una sola vez por proceso
+  (`evaluacion/corridas/base-<versión>/resumen.json`). `<TODO: costo con el modelo final>`
+- Casos que procesamos a la vez: al evaluar, **los 50 casos en el mismo lote**: vLLM agrupa en cada
+  vuelta las conversaciones que siguen activas. `<TODO: entrenamiento>`
 - Casos simultáneos que tolera en producción: `<TODO>`
 - Proyección de consumo: `<TODO>`
 - Cómo escalaríamos: `<TODO>`

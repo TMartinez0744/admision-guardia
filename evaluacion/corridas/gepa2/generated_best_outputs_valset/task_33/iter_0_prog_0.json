@@ -1,0 +1,43 @@
+{
+    "caso": "opt-094",
+    "resuelto": true,
+    "parcial": 1.0,
+    "controles": {
+        "registro": true,
+        "numero_documento": true,
+        "box_antes_del_registro": true,
+        "circuito": true,
+        "plazo_circuito_min": true,
+        "cobertura": true,
+        "entidad_a_notificar": true,
+        "aviso_al_voluntariado": true,
+        "verificacion": true
+    },
+    "esperada": {
+        "registro": "provisorio",
+        "numero_documento": "24.991.558",
+        "box_antes_del_registro": true,
+        "circuito": "ninguno",
+        "plazo_circuito_min": null,
+        "cobertura": "obra_social",
+        "entidad_a_notificar": "Obra Social Bermejo",
+        "aviso_al_voluntariado": false
+    },
+    "obtenida": {
+        "registro": "provisorio",
+        "numero_documento": "24.991.558",
+        "box_antes_del_registro": true,
+        "circuito": "ninguno",
+        "plazo_circuito_min": null,
+        "cobertura": "obra_social",
+        "entidad_a_notificar": "Obra Social Bermejo",
+        "fundamentos": [
+            "NOR-ADM-01",
+            "NOR-COB-02",
+            "NOR-COB-03"
+        ],
+        "aviso_al_voluntariado": false
+    },
+    "llamadas": 6,
+    "invalidas": 0
+}
