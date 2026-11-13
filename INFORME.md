@@ -397,7 +397,42 @@ prompt, como pide la consigna.
 
 ## Parte 4 — Entrenamiento
 
-Estrategia: `<TODO>`
+### Estrategia
+
+**Fine-tuning supervisado (SFT) con LoRA** sobre Gemma 4 E4B, con TRL 1.17.1 y PEFT 0.21.2
+(`entrenamiento/sft.py`), en una A100 de 40 GB de Modal.
+
+- **Qué se entrena:** solo las proyecciones de atención y MLP del modelo de lenguaje (LoRA de rango 16,
+  alfa 32, dropout 0,05): 34,9 millones de parámetros, alrededor del 0,4% del modelo. Las torres de
+  visión y audio de Gemma 4 E4B no se tocan.
+- **Sobre qué se calcula la pérdida:** solo sobre los mensajes del asistente, o sea las llamadas a
+  herramientas en JSON y su cierre de turno. El modelo aprende qué hacer y no a repetir lo que devuelve
+  el entorno. TRL no sabe adaptar la plantilla de chat de esta revisión de Gemma 4, así que la máscara
+  se arma en `tokenizar()` a partir de la plantilla; la verificamos sobre 1700 conversaciones, y en
+  todas lo enmascarado decodifica exactamente a los mensajes del asistente.
+- **Hiperparámetros:** tasa 1e-4 con coseno y 10 pasos de calentamiento, lote efectivo de 8
+  conversaciones (1 por pasada y 8 de acumulación, porque con el vocabulario de 262k tokens los logits
+  de un lote mayor no entran), largo máximo 5.120 tokens, bf16, gradient checkpointing y semilla 0.
+- **Con el prompt optimizado de la Parte 3**, como pide la consigna.
+- **Dos conjuntos de datos con la misma cantidad de ejemplos vistos (3200)**, para que la diferencia
+  sea por los datos y no por entrenar más:
+  - `sft-reales`: las 1600 conversaciones reales, 2 épocas;
+  - `sft-mixto`: las 1600 reales y 1600 sintéticas con normas sorteadas, 1 época.
+- **Auditabilidad:** cada corrida sube el archivo exacto de conversaciones a
+  `Pedro2204/admision-gemma4-e4b-datos` y registra su revisión y su sha256. Los adaptadores
+  intermedios van cada 100 pasos a la rama `<corrida>-checkpoints` de `Pedro2204/admision-gemma4-e4b`,
+  y el modelo fusionado, a ese repo con la etiqueta `<corrida>`. La corrida queda en el proyecto
+  `admision-guardia` de W&B con la configuración, la semilla y esas revisiones.
+
+```bash
+uv run modal run modal_app.py --comando "python -m entrenamiento.sft --datos /cache/datos/entrenamiento-reales.jsonl \
+    --nombre sft-reales --hub Pedro2204/admision-gemma4-e4b --salida /cache/modelos/sft-reales --epocas 2"
+uv run modal run modal_app.py --comando "python -m entrenamiento.sft --datos /cache/datos/entrenamiento-mixto.jsonl \
+    --nombre sft-mixto --hub Pedro2204/admision-gemma4-e4b --salida /cache/modelos/sft-mixto --epocas 1"
+```
+
+Antes corrimos una **prueba de humo** (`humo`, 2 pasos, 37 s) para recorrer todo el circuito: carga,
+entrenamiento, fusión, subida del modelo y de los datos, y registro en W&B. Pico de VRAM: 17,6 GB.
 
 Casos resueltos sobre los 50 de práctica:
 
