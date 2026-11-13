@@ -104,7 +104,19 @@ versión, búsquedas, contexto y segundos por caso. Las corridas de cada número
 | `datos/entrenamiento-mixto.jsonl` | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_optimizado.txt --sinteticas 1600 --salida datos/entrenamiento-mixto.jsonl` | semilla 0, 1600 reales + 1600 sintéticas |
 | cada entrenamiento | `entrenamiento/sft.py` (ver abajo) | configuración, semilla y revisiones en W&B y en `evaluacion/corridas/<nombre>/resumen.json` |
 
-Volver a entrenar: `<TODO: comando>`. No hace falta para verificar nada de lo de arriba.
+Volver a entrenar (no hace falta para verificar nada de lo de arriba: los puntos de control están
+publicados). Necesita `HF_TOKEN` y `WANDB_API_KEY` en `.env`; los datos se suben antes al volumen de
+Modal:
+
+```bash
+uv run modal volume put admision-cache datos/entrenamiento-mixto.jsonl /datos/entrenamiento-mixto.jsonl
+uv run modal run modal_app.py --comando "python -m entrenamiento.sft --datos /cache/datos/entrenamiento-mixto.jsonl \
+    --nombre sft-mixto --hub <usuario>/admision-gemma4-e4b --salida /cache/modelos/sft-mixto --epocas 1"
+```
+
+La semilla (0) y el resto de la configuración son los valores por defecto de `entrenamiento/sft.py`;
+cada corrida deja en W&B y en `resumen.json` la configuración completa, el sha256 y la revisión de
+Hugging Face de los datos, y la revisión del modelo fusionado.
 
 ## 6. Diagrama
 
