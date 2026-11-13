@@ -84,6 +84,9 @@ def cargar_modelo():
     # proceso padre ya tocó CUDA (torch al armar el buscador) el hijo falla con
     # "CUDA error: initialization error". Con spawn el hijo arranca limpio.
     os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
+    # El muestreador de FlashInfer se compila al arrancar y necesita nvcc, que la
+    # máquina puede no tener. Sin él, vLLM usa su muestreador de PyTorch.
+    os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
     from vllm import LLM
 
     return LLM(model=MODELO_HF, revision=REVISION_HF, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0)
