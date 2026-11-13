@@ -11,7 +11,7 @@ ficha (ver admision/ejemplo.py).
 
 from pathlib import Path
 
-from buscador.bm25 import BuscadorBM25
+from buscador.hibrido import BuscadorHibrido
 
 # El modelo se baja de este repositorio, con HF_TOKEN tomado del entorno.
 # La revision es el commit o la etiqueta exacta del punto de control final.
@@ -40,7 +40,9 @@ def construir_buscador(ruta_normas):
 
     Si una busqueda falla, esa llamada vuelve como error y el caso sigue.
     """
-    return BuscadorBM25(Path(ruta_normas))
+    # Embeddings de bge-m3 sobre los párrafos, 3 por búsqueda: la mejor variante
+    # de buscador.comparar (ver INFORME, Parte 2).
+    return BuscadorHibrido(Path(ruta_normas), modelo="bge-m3", modo="denso", k_entorno=3)
 
 
 def construir_agente():

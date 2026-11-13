@@ -110,7 +110,79 @@ De las 12 consultas coloquiales no acierta ninguna. Es coincidencia léxica pura
 usa las palabras de la norma, un buscador por palabras no la encuentra. De ahí que la siguiente
 versión sea vectorial.
 
-Cuánto rinde el agente con nuestro buscador: `<TODO>`
+### Segunda pasada: embeddings y búsqueda híbrida
+
+`buscador/hibrido.py` agrega embeddings sobre los **mismos chunks por párrafo** y tres modos:
+solo BM25, solo embeddings (`denso`) e `hibrido`, que fusiona los dos rankings con Reciprocal Rank
+Fusion (constante 60). Probamos tres modelos de embeddings multilingües, cada uno fijado a su commit
+de Hugging Face: `intfloat/multilingual-e5-small`, `intfloat/multilingual-e5-base` y `BAAI/bge-m3`.
+Corren en CPU, para no quitarle VRAM al modelo del agente.
+
+```bash
+uv run python -m buscador.comparar --kit <ruta al kit>
+```
+
+Normas originales, `k = 2`:
+
+| Variante | Recall | Precisión | Tokens | Completas | Recall coloquial | Recall a 512 tokens |
+|---|---|---|---|---|---|---|
+| BM25 | 0,625 | 0,358 | 173 | 36 / 60 | 0,000 | 0,783 |
+| e5-small, denso | 0,767 | 0,433 | 178 | 44 / 60 | 0,333 | 0,892 |
+| e5-small, híbrido | 0,700 | 0,392 | 182 | 39 / 60 | 0,083 | 0,833 |
+| e5-base, denso | 0,767 | 0,433 | 173 | 43 / 60 | 0,417 | 0,908 |
+| e5-base, híbrido | 0,742 | 0,417 | 174 | 42 / 60 | 0,250 | 0,842 |
+| **bge-m3, denso** | **0,792** | **0,458** | 179 | **46 / 60** | **0,500** | **0,950** |
+| bge-m3, híbrido | 0,708 | 0,400 | 179 | 40 / 60 | 0,250 | 0,850 |
+
+El BM25 de esta tabla da 173 tokens y no 166 porque acá devuelve siempre `k` chunks, aunque alguno
+tenga puntaje cero.
+
+**Lo que no funcionó: el híbrido.** Esperábamos que combinar los dos sumara, y en los tres modelos
+rindió peor que los embeddings solos. En las consultas coloquiales BM25 pone arriba párrafos que
+comparten palabras sueltas pero no el sentido, y la fusión los mete entre los primeros. Los
+embeddings solos también resuelven las consultas directas y numéricas, que era donde BM25 servía.
+
+Después, la cantidad de chunks por búsqueda con bge-m3:
+
+| `k_entorno` | Recall | Precisión | Tokens | Completas |
+|---|---|---|---|---|
+| 2 | 0,792 | 0,458 | 179 | 46 / 60 |
+| **3** | **0,883** | 0,339 | 270 | **52 / 60** |
+| 4 | 0,892 | 0,258 | 352 | 53 / 60 |
+
+Pasar de 3 a 4 casi no suma recall y agrega 80 tokens por búsqueda.
+
+### Buscador elegido
+
+**bge-m3, solo embeddings, `k_entorno = 3`**, que es el que arma `entrega.py`:
+
+```bash
+uv run python -m admision.evaluar_rag --entrega entrega.py --normas <kit>/normas/original \
+    --consultas <kit>/rag/consultas_dev.jsonl
+```
+
+| | Recall de evidencia | Precisión | Tokens por consulta | Consultas completas |
+|---|---|---|---|---|
+| Referencia BM25 | 0,875 | 0,492 | 580 | 51 / 60 |
+| BM25 propio, por párrafo | 0,625 | 0,358 | 166 | 36 / 60 |
+| **bge-m3 por párrafo, k = 3** | **0,883** | 0,339 | **270** | **52 / 60** |
+
+Supera a la referencia en recall y en consultas completas con menos de la mitad del contexto. La
+precisión es menor porque trae 3 chunks chicos en vez de 2 secciones enteras: el tercero muchas
+veces sobra, pero cuesta poco. Con presupuesto fijo, el mismo buscador da 0,842 a 256 tokens, 0,950
+a 512 y 0,983 a 1024. Sigue fallando en 5 de las 12 consultas coloquiales (recall 0,583).
+
+En un M1 Max, armar el buscador tarda 7 s (81 chunks) y cada búsqueda unos 100 ms en CPU.
+
+Dos salvedades:
+
+- Elegimos el modelo y `k` mirando estas 60 consultas, que son las mismas con las que lo medimos.
+  El número real es lo que rinda el agente con el test.
+- Con las normas b y c las consultas de la cátedra no sirven para medir: su evidencia trae los
+  números de las normas originales, que en b y c no aparecen. Por eso el recall numérico cae de
+  1,000 a 0,250, y no porque el buscador empeore.
+
+Cuánto rinde el agente con nuestro buscador: `<TODO: correr la línea base en GPU>`
 
 ## Parte 3 — Optimización de prompt
 
