@@ -272,14 +272,95 @@ Deja el prompt ganador en `prompt/sistema_optimizado.txt` y los registros de GEP
 `resultado.json` en `--salida`. Antes de correrlo en GPU, lo probamos de punta a punta en CPU con un
 modelo falso, para controlar el circuito: el entorno, el puntaje, la devolución y el guardado.
 
+### Primera pasada: el reflector rompía el contrato (no funcionó)
+
+La primera versión optimizaba el mensaje de sistema entero. En la A100, **todos los prompts que
+propuso Gemma como reflector sacaron 0,0** en su minilote: al reescribir, borraba la lista de
+herramientas con sus argumentos exactos (`a_quien`, `tema`, los valores permitidos de cada campo),
+el agente ya no podía armar llamadas válidas y no registraba ninguna ficha. La cortamos a las 9
+iteraciones, sin ningún candidato aceptado.
+
+### Segunda pasada: solo las instrucciones
+
+Partimos el mensaje en dos (`prompt/agente.py`): el **contrato** con el entorno (las herramientas,
+sus argumentos y el formato JSON), que queda fijo, y las **instrucciones** (el rol y la estrategia),
+que es lo único que reescribe GEPA. La devolución al reflector aclara que el contrato se agrega
+aparte. El prompt inicial es el de la cátedra con el rol y la lista de normas antes del contrato
+(`prompt/sistema_inicial.txt`).
+
+Corrida en una A100 de 40 GB de Modal, en el commit `6d6e9ce`, con semilla 0, 60 + 40 casos
+generados y 600 casos jugados. Toda la salida de GEPA está en `evaluacion/corridas/gepa2/`
+(`resultado.json`, `candidates.json`, `run_log.txt`).
+
+```bash
+uv run modal run modal_app.py --comando "python -m prompt.optimizar --kit ../talksmith-ing/missions/TPFinal \
+    --salida /cache/corridas/gepa2"
+```
+
+Puntaje en los 40 casos de validación, como fracción de los 9 controles, de los 11 candidatos:
+
+| Candidato | 0 (inicial) | 1 | 2 | 3 | 4 | 5 | 6 | 7 | **8** | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Puntaje | 0,845 | 0,653 | 0,845 | 0,853 | 0,858 | 0,856 | 0,647 | 0,831 | **0,864** | 0,772 | 0,856 |
+
+Lo que observamos:
+
+- **Reordenar ya mejora.** El prompt inicial tiene el mismo texto que el de la cátedra, pero con el
+  rol y las normas antes de las herramientas. En la primera pasada, con el orden de la cátedra, el
+  mismo conjunto de validación daba 0,795; reordenado da 0,845.
+- **GEPA suma poco sobre eso:** el mejor candidato, el 8, llega a 0,864.
+- **El prompt ganador es 3 veces más largo: 1.909 tokens contra 615.** Tiene reglas que aprendió de
+  los errores y son correctas: la afiliación inactiva cuenta como sin cobertura y no se notifica, en
+  ambulancia se resta P-TDE-5, y en un accidente de trabajo prevalece la ART. No escribe ningún valor
+  de las normas. Pero también tiene reglas confusas o equivocadas, que salen de un reflector chico:
+  la de `box_antes_del_registro` se contradice, cita NOR-INT-05 (de otra área del hospital) y trata
+  el aviso al voluntariado como "falso salvo que una norma diga lo contrario", cuando es una costumbre.
+
 ### Resultados
 
-Con el modelo **sin entrenar**:
+Con el modelo **sin entrenar**, sobre los 50 casos de práctica y las tres versiones de normas.
+Cada fila sale de `uv run python -m evaluacion.tabla evaluacion/corridas/<corrida>`, con el commit
+`2ce3280` y el prompt que indica (`ADMISION_PROMPT`):
 
-| | Casos resueltos | Largo del prompt (tokens) |
-|---|---|---|
-| Antes de optimizar | `<TODO>` | `<TODO>` |
-| Después de optimizar | `<TODO>` | `<TODO>` |
+| Prompt | Original | b | c | Total | Largo del prompt (tokens) | Tokens de contexto por caso | Segundos por caso |
+|---|---|---|---|---|---|---|---|
+| Antes: el de la cátedra (`base`) | 11 | 5 | 5 | 21 / 150 | 615 | 4.278 | 0,74 |
+| Inicial reordenado (`ini`) | 7 | 7 | 11 | 25 / 150 | 615 | 4.641 | 0,79 |
+| **Después: optimizado por GEPA (`opt`)** | **13** | **15** | **13** | **41 / 150** | **1.909** | **11.044** | **0,82** |
+
+Acierto por control, promedio de las tres versiones:
+
+| Control | Cátedra | Reordenado | Optimizado |
+|---|---|---|---|
+| registro | 0,59 | 0,62 | 0,61 |
+| box_antes_del_registro | 0,64 | 0,76 | **0,93** |
+| circuito | 0,96 | 0,98 | 0,96 |
+| plazo_circuito_min | 0,80 | 0,86 | **0,92** |
+| cobertura | 0,79 | 0,79 | 0,84 |
+| entidad_a_notificar | 0,82 | 0,83 | 0,86 |
+| aviso_al_voluntariado | 0,72 | 0,72 | 0,72 |
+| verificacion | 0,80 | 0,90 | 0,80 |
+
+Lo que sacamos en limpio:
+
+- **El prompt optimizado casi duplica los casos resueltos (41 contra 21) y la mejora se sostiene con
+  las tres versiones de normas.** Con b y c pasa de 5 a 15 y 13, igual o por encima de la referencia
+  sin entrenar de la cátedra (12, 15, 12).
+- **La ganancia está en `box_antes_del_registro` (0,64 → 0,93) y en `plazo_circuito_min` (0,80 →
+  0,92)**, justo las reglas que GEPA escribió a partir de los errores (la edad del box y el descuento
+  por ambulancia, leyendo el valor de la norma).
+- **Reordenar solo no alcanza:** 25 contra 21, dentro de la varianza. En validación el orden parecía
+  ayudar (0,795 → 0,845), pero en los casos de práctica no se sostiene.
+- **`aviso_al_voluntariado` no se mueve (0,72):** un prompt no puede enseñar una costumbre que no
+  está escrita en ninguna norma. Eso es trabajo del entrenamiento (Parte 4).
+- **El costo es el largo.** El prompt pasa de 615 a 1.909 tokens y, como se repite en cada llamada,
+  el contexto por caso sube de 4.278 a 11.044 tokens; en la A100 el tiempo por caso casi no cambia
+  (0,82 s contra 0,74 s), pero ocupa más memoria de caché y alarga cada conversación de
+  entrenamiento. Lo aceptamos porque duplica los casos resueltos; un trabajo futuro es pedirle al
+  reflector que también acorte, por ejemplo con el largo como segundo objetivo de GEPA.
+
+Desde acá `entrega.py` usa `prompt/sistema_optimizado.txt`, y el entrenamiento se hace con ese
+prompt, como pide la consigna.
 
 ## Parte 4 — Entrenamiento
 
@@ -292,7 +373,7 @@ Casos resueltos sobre los 50 de práctica:
 | Referencia, sin entrenar | 12 | 15 | 12 |
 | Referencia, con SFT | 25 | 24 | 25 |
 | Nuestro modelo, sin entrenar | 11 | 5 | 5 |
-| Solo prompt | `<TODO>` | `<TODO>` | `<TODO>` |
+| Solo prompt | 13 | 15 | 13 |
 | Solo entrenamiento | `<TODO>` | `<TODO>` | `<TODO>` |
 | Prompt + entrenamiento | `<TODO>` | `<TODO>` | `<TODO>` |
 
