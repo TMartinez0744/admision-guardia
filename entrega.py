@@ -20,6 +20,9 @@ from buscador.hibrido import BuscadorHibrido
 MODELO_HF = "google/gemma-4-E4B-it"
 REVISION_HF = "4ecc2ba63bcac23ba4a767fc87025b1450f84c9c"
 
+# Mensaje de sistema: el que eligió la optimización de prompt (Parte 3).
+RUTA_PROMPT = Path(__file__).parent / "prompt" / "sistema_optimizado.txt"
+
 # Contexto maximo por conversacion. Si una conversacion lo supera, vLLM falla.
 MAX_CONTEXTO = 32768
 # Tokens maximos por respuesta del modelo: una llamada a herramienta en JSON.
@@ -67,13 +70,17 @@ def construir_agente():
 
     En operacion el agente no llama a ningún servicio externo.
 
-    Linea de base: el agente de ejemplo de la catedra (``AgenteJSON``, con su
-    mensaje de sistema) sobre vLLM. Decodificacion greedy (temperatura 0) para
-    que la evaluacion sea reproducible.
+    El agente de ejemplo de la cátedra (protocolo JSON) sobre vLLM, con el
+    mensaje de sistema de ``RUTA_PROMPT``. Decodificacion greedy (temperatura 0)
+    para que la evaluacion sea reproducible. Para los experimentos, la variable
+    de entorno ``ADMISION_PROMPT`` apunta a otro archivo de prompt.
     """
-    from admision.ejemplo import AgenteJSON
+    import os
 
-    return AgenteJSON(modelo_lote_de(cargar_modelo()))
+    from prompt.agente import AgenteConPrompt
+
+    sistema = Path(os.environ.get("ADMISION_PROMPT", RUTA_PROMPT)).read_text(encoding="utf-8")
+    return AgenteConPrompt(modelo_lote_de(cargar_modelo()), sistema)
 
 
 def cargar_modelo():
