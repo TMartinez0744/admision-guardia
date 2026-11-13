@@ -81,6 +81,39 @@ exactamente la ficha que figura en la traza.
 
 El archivo resultante pesa 18,6 MB y no se versiona: lo regenera el comando de arriba.
 
+### Segunda versión: búsquedas de nuestro buscador y conversaciones sintéticas
+
+Para entrenar (Parte 4) armamos las conversaciones con `entrenamiento/datos.py`, que reemplaza a
+`curado/conversaciones.py` en dos cosas:
+
+- **Las 1600 reales con las búsquedas rehechas.** Las trazas guardan lo que devolvía el BM25 de la
+  cátedra, que es de 2 secciones enteras. Nuestro agente ve otra cosa: 3 párrafos de bge-m3. Cada
+  `buscar_normativa` se vuelve a correr con nuestro buscador sobre las normas originales, que son las
+  del historial, y el modelo se entrena con lo que va a ver.
+- **1600 sintéticas.** Son casos de `admision.generador` jugados en el entorno de la cátedra por un
+  operador experto programado. El operador usa las mismas 14 consultas que los operadores del
+  historial y registra la ficha de `curado/etiquetar.py`. Las normas tienen los 9 parámetros que
+  deciden la ficha sorteados, con una versión nueva cada 50 casos, así el modelo ve muchos valores
+  distintos y tiene que leerlos del buscador. Solo entran los episodios que el comparador del kit da
+  por resueltos: **1600 de 1600**, sin descartes.
+
+| Archivo | Reales | Sintéticas | sha256 |
+|---|---|---|---|
+| `datos/entrenamiento-reales.jsonl` | 1600 | 0 | `b2c2c9dd…` |
+| `datos/entrenamiento-mixto.jsonl` | 1600 | 1600 | `b38b889b…` |
+
+Los dos llevan el mensaje de sistema optimizado de la Parte 3. Se generan con semilla 0:
+
+```bash
+uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_optimizado.txt \
+    --semilla 0 --salida datos/entrenamiento-reales.jsonl
+uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_optimizado.txt \
+    --sinteticas 1600 --semilla 0 --salida datos/entrenamiento-mixto.jsonl
+```
+
+Cada entrenamiento sube el archivo exacto que usó a un repositorio de datasets privado de Hugging
+Face, con su revisión (ver Parte 4).
+
 ## Parte 2 — Buscador (RAG)
 
 Resultado de `admision.evaluar_rag` sobre `rag/consultas_dev.jsonl`, con `k_entorno = 2`:
