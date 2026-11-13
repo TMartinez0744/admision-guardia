@@ -64,7 +64,7 @@ Los 50 casos de práctica con las normas original, b y c, que producen la tabla 
 |---|---|---|
 | `historial_clasificado.csv` | `uv run python -m curado.clasificar` | sin aleatoriedad |
 | `datos/conversaciones.jsonl` | `uv run python -m curado.conversaciones` | sin aleatoriedad |
-| prompt optimizado | `<TODO>` | `<TODO>` |
+| `prompt/sistema_optimizado.txt` | `uv run python -m prompt.optimizar --kit <kit> --salida corridas/gepa` | semilla 0, 60 + 40 casos generados, 600 casos jugados |
 | cada entrenamiento | `<TODO>` | `<TODO>` |
 
 Volver a entrenar: `<TODO: comando>`. No hace falta para verificar nada de lo de arriba.

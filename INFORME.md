@@ -186,6 +186,43 @@ Cuánto rinde el agente con nuestro buscador: `<TODO: correr la línea base en G
 
 ## Parte 3 — Optimización de prompt
 
+### Cómo optimizamos
+
+Usamos **GEPA** (`gepa==0.1.4`), el optimizador que sugiere la consigna, sobre el mensaje de
+sistema del agente de ejemplo. GEPA juega casos con un prompt candidato, junta en qué controles
+falló cada uno y le pide a un modelo reflector que proponga una versión mejor. Se queda con las
+que mejoran en un conjunto de validación.
+
+- **El reflector es la misma Gemma 4 E4B** del agente, en la misma A100: no pagamos ninguna API.
+- **Casos para optimizar: 100 generados** con `admision.generador` (semilla 0), 60 para proponer y
+  40 para validar. Los 50 de práctica no se tocan, porque con ellos se mide el antes y el después.
+- **La respuesta de cada caso generado la calcula `curado/etiquetar.py`** con las reglas y
+  costumbres de la Parte 1. Antes de usarlo lo controlamos con los 50 casos de práctica: da
+  **50/50 fichas iguales a las de la cátedra con las normas original, b y c**. Eso también
+  confirma las reglas y costumbres de la Parte 1.
+
+  ```bash
+  uv run python -m curado.etiquetar --kit <ruta al kit>
+  ```
+
+- **Las normas rotan** entre original, b y c, una por caso. Un prompt que escriba un número de las
+  normas falla en las otras dos versiones, y además la devolución al reflector le pide no
+  escribirlos.
+- **El puntaje de un caso** es la fracción de los 9 controles que pasa, no solo resuelto o no: así
+  GEPA distingue una ficha casi bien de una vacía.
+- `prompt/agente.py` es el agente de la cátedra con el mensaje de sistema como parámetro; el
+  protocolo JSON no cambia.
+
+```bash
+uv run python -m prompt.optimizar --kit <ruta al kit> --salida corridas/gepa
+```
+
+Deja el prompt ganador en `prompt/sistema_optimizado.txt` y los registros de GEPA y
+`resultado.json` en `--salida`. Antes de correrlo en GPU, lo probamos de punta a punta en CPU con un
+modelo falso, para controlar el circuito: el entorno, el puntaje, la devolución y el guardado.
+
+### Resultados
+
 Con el modelo **sin entrenar**:
 
 | | Casos resueltos | Largo del prompt (tokens) |
