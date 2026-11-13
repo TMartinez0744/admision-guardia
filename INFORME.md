@@ -445,7 +445,44 @@ Casos resueltos sobre los 50 de práctica:
 | Solo entrenamiento | `<TODO>` | `<TODO>` | `<TODO>` |
 | Prompt + entrenamiento | `<TODO>` | `<TODO>` | `<TODO>` |
 
-Corridas que no funcionaron y por qué: `<TODO>`
+### Primeras corridas: reales contra mixto
+
+Los dos con el prompt optimizado de la Parte 3, evaluados con ese mismo prompt
+(`evaluacion/corridas/sft-reales-*`, `sft-mixto-*`):
+
+| Corrida | Original | b | c | Total | Búsquedas por caso | Tokens de contexto por caso | Segundos por caso | Entrenamiento |
+|---|---|---|---|---|---|---|---|---|
+| `sft-reales` (`988eeea4`) | **40** | 31 | 36 | 107 | 3,04 | 15.725 | 1,06 | 6.170 s |
+| `sft-mixto` (`82c82c42`) | 36 | **35** | **36** | 107 | 3,29 | 16.400 | 1,28 | 5.941 s |
+
+- **Los dos superan de lejos a la referencia con SFT** (25, 24, 25) y al modelo sin entrenar con el
+  mismo prompt (13, 15, 13).
+- **Empatan en el total, pero el mixto es más parejo entre versiones de normas:** el reales cae 9
+  casos de las originales a las b (40 → 31), justo los números con los que se entrenó contra los que
+  no, y el mixto casi no se mueve (36 → 35). Las conversaciones sintéticas con normas sorteadas le
+  enseñaron a leer los valores del buscador; para un test con otros números, el mixto es el candidato.
+- **Los entrenados buscan más** (3,0 a 3,3 búsquedas por caso contra 1,3 sin entrenar), como los
+  operadores del historial, y por eso usan más contexto.
+- **En el mixto todos los controles quedan en 1,00 salvo `aviso_al_voluntariado` (0,72).** Todas
+  sus fallas son los 14 casos de práctica con 75 años o más y sin acompañante, en los que nunca avisa.
+
+### Lo que no funcionó: una regla equivocada del prompt de GEPA
+
+La causa de esas fallas está en el prompt optimizado, que dice que `aviso_al_voluntariado` *"debe ser
+False a menos que una norma específica indique lo contrario"*. Ninguna norma habla del voluntariado:
+es la costumbre 1 de `costumbres.md` (75 años o más y sin acompañante). El modelo entrenado obedece
+al prompt antes que a los ejemplos, en los que el aviso es verdadero en el 11% de los casos.
+
+**Primer intento, que no funcionó: corregir el prompt sin reentrenar.** `prompt/sistema_final.txt` es
+el prompt optimizado con solo esa línea cambiada por la costumbre. Evaluamos `sft-mixto` con él, con
+las normas originales (`evaluacion/corridas/sft-mixto-final-original`): **bajó de 36 a 30**. Ahora sí
+avisa en los 14 casos que corresponde, pero también en 12 de 75 o más con acompañante y en 8 de menos
+de 75: el modelo no mira el acompañante, porque se entrenó con un texto que decía otra cosa. Cortamos
+la corrida sin evaluar b y c.
+
+**Segundo intento: reentrenar con el prompt corregido dentro de los datos**
+(`datos/entrenamiento-mixto-final.jsonl`, sha256 `bc6ad9fd…`, los mismos 1600 + 1600 casos con el
+prompt corregido), para que el texto y los ejemplos digan lo mismo: corrida `sft-mixto-final`.
 
 ## Parte 5 — Recursos y producción
 
