@@ -100,6 +100,8 @@ versión, búsquedas, contexto y segundos por caso. Las corridas de cada número
 
 ## 5. De dónde sale cada archivo
 
+Qué código, qué punto de control y qué prompt usó cada corrida de evaluación: `evaluacion/corridas/README.md`.
+
 | Archivo | Lo genera | Configuración y semilla |
 |---|---|---|
 | `historial_clasificado.csv` | `uv run python -m curado.clasificar` | sin aleatoriedad |
@@ -107,8 +109,11 @@ versión, búsquedas, contexto y segundos por caso. Las corridas de cada número
 | `prompt/sistema_optimizado.txt` | `uv run python -m prompt.optimizar --kit <kit> --salida corridas/gepa` | semilla 0, 60 + 40 casos generados, 600 casos jugados |
 | `datos/entrenamiento-reales.jsonl` | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_optimizado.txt --salida datos/entrenamiento-reales.jsonl` | semilla 0, 1600 reales |
 | `datos/entrenamiento-mixto.jsonl` | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_optimizado.txt --sinteticas 1600 --salida datos/entrenamiento-mixto.jsonl` | semilla 0, 1600 reales + 1600 sintéticas |
-| `prompt/sistema_final.txt` | `prompt/sistema_optimizado.txt` con la regla de `aviso_al_voluntariado` reemplazada por la costumbre (a mano, ver INFORME, Parte 4) | — |
+| `prompt/sistema_final.txt`, `prompt/sistema_inicial.txt`, `prompt/sistema_catedra.txt` | `uv run python -m prompt.archivos` (el final es `sistema_optimizado.txt` con la regla de `aviso_al_voluntariado` reemplazada por la costumbre; ver INFORME, Parte 4) | sin aleatoriedad |
 | `datos/entrenamiento-mixto-final.jsonl` (el del modelo final) | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_final.txt --sinteticas 1600 --salida datos/entrenamiento-mixto-final.jsonl` | semilla 0, 1600 reales + 1600 sintéticas |
+| `evaluacion/corridas/<corrida>-<versión>/` | `admision.correr practica` (sección 4); la fila del informe, `uv run python -m evaluacion.tabla` | greedy (temperatura 0) |
+| `evaluacion/corridas/capacidad-*/` | `uv run python -m evaluacion.capacidad --kit <kit> --salida ...` | casos generados con semilla 1 |
+| `evaluacion/entrenamientos/<corrida>/resumen.json` | lo escribe `entrenamiento/sft.py` al terminar | semilla 0 |
 | `datos/entrenamiento-mixto-catedra.jsonl` | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_catedra.txt --sinteticas 1600 --salida datos/entrenamiento-mixto-catedra.jsonl` | semilla 0, 1600 reales + 1600 sintéticas |
 | cada entrenamiento | `entrenamiento/sft.py` (ver abajo) | configuración, semilla y revisiones en W&B y en `evaluacion/entrenamientos/<corrida>/resumen.json` |
 

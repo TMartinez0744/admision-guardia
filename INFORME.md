@@ -541,7 +541,13 @@ Lo que sacamos en limpio de la Parte 4:
   embeddings en GPU difieren de los de CPU en los últimos decimales y eso puede reordenar algún
   párrafo empatado. Las métricas de `evaluar_rag` no cambian (recall 0,883, 52/60).
 - La evaluación del modelo final con variables de entorno (`gpu-final`) y la de `entrega.py` tal cual
-  (`entrega`) dan lo mismo caso por caso: 49, 50 y 50.
+  (`entrega`) dan las **mismas 150 conversaciones, palabra por palabra**: 49, 50 y 50.
+- **Los datos se reproducen exactos.** Regenerado desde cero con `entrenamiento.datos` (semilla 0),
+  `datos/entrenamiento-mixto-final.jsonl` da el mismo sha256 que el usado para entrenar el modelo final
+  (`bc6ad9fd…`). `curado.clasificar` vuelve a dar las mismas 2.000 clasificaciones, y
+  `prompt.archivos`, los mismos prompts byte a byte.
+- **Qué modelo, qué prompt y qué código usó cada corrida** está en `evaluacion/corridas/README.md`; el
+  prompt se puede comprobar en cada traza, cuyo primer mensaje es exactamente el archivo de prompt.
 
 ## Parte 5 — Recursos y producción
 
