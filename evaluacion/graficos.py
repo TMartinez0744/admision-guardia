@@ -202,7 +202,7 @@ def perdida() -> None:
     ax.set_yscale("log")
     ax.set_xlabel("Paso de entrenamiento (8 conversaciones por paso; 400 pasos = 3.200 conversaciones)")
     ax.legend(loc="upper right", fontsize=9)
-    guardar(fig, "perdida.png")
+    guardar(fig, "perdida-entrenamientos.png")
 
 
 def controles() -> None:
@@ -283,7 +283,7 @@ def recursos() -> None:
     ejes[2].text(40, -0.62, "40 GB", color=TINTA_3, fontsize=8, ha="right", va="top")
     ejes[0].set_ylim(-0.95, len(corridas) - 0.45)
     ejes[0].set_yticks(y, [c[1] for c in corridas])
-    guardar(fig, "recursos.png")
+    guardar(fig, "recursos-entrenamientos.png")
 
 
 def main() -> None:
