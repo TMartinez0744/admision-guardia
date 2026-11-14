@@ -392,8 +392,9 @@ Lo que sacamos en limpio:
   entrenamiento. Lo aceptamos porque duplica los casos resueltos; un trabajo futuro es pedirle al
   reflector que también acorte, por ejemplo con el largo como segundo objetivo de GEPA.
 
-Desde acá `entrega.py` usa `prompt/sistema_optimizado.txt`, y el entrenamiento se hace con ese
-prompt, como pide la consigna.
+Desde acá el entrenamiento se hace con este prompt, como pide la consigna. En la Parte 4 corregimos
+una regla equivocada que escribió GEPA (el aviso al voluntariado); el prompt que usa `entrega.py` al
+final es ese corregido, `prompt/sistema_final.txt`.
 
 ## Parte 4 — Entrenamiento
 
