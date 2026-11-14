@@ -671,3 +671,136 @@ datos sintéticos y el etiquetado corrieron en CPU, en una computadora del grupo
 - **Entrenar más rápido:** empaquetar conversaciones y subir el lote, con la mitad de la GPU libre.
 - **Bajar el costo de uso:** cuantizar a 8 bits, probar GPUs más chicas y hacer las búsquedas de todos
   los casos activos en un solo lote del modelo de embeddings.
+
+## Análisis y conclusiones
+
+Los gráficos de esta sección salen de `uv run python -m evaluacion.graficos`, que lee solo archivos
+del repositorio (las corridas de `evaluacion/corridas/` y las curvas de pérdida que
+`evaluacion/historia_wandb.py` bajó de W&B a `evaluacion/entrenamientos/<corrida>/perdida.json`).
+
+### Cómo llegamos de 21 a 149
+
+![Casos resueltos en cada iteración](informe/figuras/progreso.png)
+
+El salto grande no lo dio el prompt ni el buscador sino el entrenamiento: con el modelo sin entrenar,
+el mejor prompt llegó a 41 de 150; el primer entrenamiento, con el mismo prompt, a 107. Las dos
+últimas mejoras (107 → 129 → 149) no vinieron de entrenar más ni con otros datos, sino de **que el
+prompt dijera lo mismo que los datos**.
+
+![La tabla de la Parte 4, por versión de normas](informe/figuras/tabla_parte4.png)
+
+La señal que más nos importaba es que las barras de cada grupo sean parejas: un modelo que resuelve
+lo mismo con las tres versiones de normas no depende de los números, y eso es lo que pide el test
+secreto. El modelo sin entrenar es irregular (11, 5, 5); el final no (49, 50, 50).
+
+### Qué arregló cada etapa
+
+![Acierto por control en cada etapa](informe/figuras/controles.png)
+
+- **El prompt** mejoró los controles que se resuelven con una regla escrita (el box y el plazo con
+  ambulancia), pero no los que dependen del procedimiento: el registro y la verificación siguen
+  donde estaban.
+- **El entrenamiento** llevó a 1,00 todo lo que es oficio: qué buscar, a quién preguntar, qué
+  verificar. Desde el primer entrenamiento todos los controles quedan en 1,00 o a un caso de 1,00
+  (0,99), salvo `aviso_al_voluntariado`, la costumbre que no está escrita en ninguna norma.
+- **Esa fila cuenta la historia de la Parte 4:** 0,72 con el prompt de GEPA (que la contradecía),
+  0,86 con el de la cátedra (que no decía nada) y 1,00 cuando el prompt y los datos dijeron lo mismo.
+
+### Entrenamiento y sobreajuste
+
+![Curvas de pérdida](informe/figuras/perdida.png)
+
+Las cuatro curvas caen de 0,5 a menos de 0,01 en unos 100 pasos: el oficio es muy regular (14
+consultas, un orden de pasos estable) y el modelo lo aprende rápido. La curva más baja es la de
+**solo reales**, que vio dos veces las mismas 1600 conversaciones, y es justamente el modelo que más
+cae cuando cambian los números (40 → 31 con las normas b). Una pérdida más baja en entrenamiento no
+fue un mejor modelo: fue memorizar. Las conversaciones sintéticas, con los números sorteados, son lo
+que lo evitó.
+
+### Capacidad
+
+![Segundos por caso según los casos a la vez](informe/figuras/capacidad.png)
+
+Con el buscador en CPU el tiempo por caso casi no bajaba al procesar más casos juntos: algo se hacía
+de a uno. Encontrarlo nos llevó a mirar dónde se iba el tiempo y no solo cuánto tardaba. Con el
+buscador en la GPU, la curva hace lo que se espera de vLLM: más casos a la vez, menos tiempo por caso,
+hasta que se llena la caché (unos 200 casos).
+
+### Mapa de trazabilidad
+
+Cada número del informe se puede seguir hasta los datos y el código que lo produjeron:
+
+```mermaid
+flowchart TB
+    hist["Historial<br/>del kit"] -->|curado.clasificar| clas["Historial<br/>clasificado"]
+    gen["Generador<br/>de casos"] -->|normas<br/>sorteadas| datos
+    clas -->|entrenamiento.datos| datos["Datos de<br/>entrenamiento<br/>(HF + sha256)"]
+    gepa["GEPA<br/>(gepa2)"] -->|prompt.archivos| prompt["Prompt<br/>final"]
+    prompt --> datos
+    datos -->|entrenamiento.sft| modelo["Modelo<br/>fusionado<br/>(HF + etiqueta)"]
+    datos -.->|config, semilla,<br/>pérdida| wandb["W&B"]
+    modelo --> entrega["entrega.py"]
+    prompt --> entrega
+    entrega -->|admision.correr| corridas["Corridas<br/>(trazas y<br/>resultados)"]
+    corridas -->|evaluacion.tabla<br/>y graficos| informe["INFORME"]
+```
+
+| Entrenamiento | Datos (sha256) | Datos en HF | Conversaciones | Épocas | Modelo en HF | W&B | Evaluado en |
+|---|---|---|---|---|---|---|---|
+| `humo` | `b2c2c9dd` | `9552900a` | 1600 | 0,01 | `0de30526` | `uuult2g5` | — (prueba de circuito) |
+| `sft-reales` | `b2c2c9dd` | `9552900a` | 1600 | 2 | `988eeea4` | `oq6m4l4t` | `sft-reales-*` |
+| `sft-mixto` | `b38b889b` | `a8b7cecf` | 3200 | 1 | `82c82c42` | `mv502vu9` | `sft-mixto-*` |
+| `sft-mixto-catedra` | `eb73a57b` | `86ca6f00` | 3200 | 1 | `d1d5a224` | `omyx00zc` | `sft-catedra-*`, `gpu-catedra-*` |
+| **`sft-mixto-final`** | **`bc6ad9fd`** | **`d1678aeb`** | **3200** | **1** | **`671cca68`** | **`1z2vvk3n`** | **`gpu-final-*`, `entrega-*`** |
+
+Todos con semilla 0. Los puntos de control intermedios de cada corrida están en la rama
+`<corrida>-checkpoints` del repositorio del modelo (etiquetas `<corrida>-checkpoint-100` a `-400`).
+El código, el modelo y el prompt de cada evaluación están en `evaluacion/corridas/README.md`.
+
+Lo comprobamos, no solo lo registramos: los datos del modelo final regenerados desde cero dan el mismo
+sha256, la clasificación del historial se reproduce fila por fila, y la evaluación final corrida dos
+veces da las mismas 150 conversaciones palabra por palabra.
+
+### Lo que aprendimos
+
+- **El oficio va en los pesos y los números en el buscador.** Es la división que propone la consigna
+  y la confirmamos con datos: el modelo final copia cada plazo, edad y dígito de lo que trae el
+  buscador, y por eso resuelve igual con las normas b y c. Lo que lo hizo posible fueron las
+  conversaciones sintéticas con números sorteados, no más datos reales.
+- **El prompt y los datos de entrenamiento tienen que decir lo mismo.** La lección más cara del
+  trabajo: una sola regla equivocada del prompt optimizado le costó al modelo entrenado 42 casos, y
+  corregirla sin reentrenar lo empeoró. Un modelo entrenado obedece al texto con el que se entrenó.
+- **Lo que ayuda a un modelo sin entrenar puede estorbar a uno entrenado.** El prompt de GEPA
+  duplicó los aciertos del modelo base, pero una vez entrenado rindió más el prompt corto de la
+  cátedra (129 contra 107) hasta que corregimos la regla.
+- **Un reflector chico escribe reglas plausibles pero no siempre correctas.** GEPA con Gemma como
+  reflector no costó nada y mejoró el prompt, pero mezcló reglas buenas con otras inventadas. Sin
+  revisar el prompt a mano no habríamos encontrado la causa de las fallas.
+- **Medir antes de optimizar.** El cuello de botella de velocidad no estaba en el modelo sino en el
+  buscador en CPU, y el error de auditabilidad (los puntos de control sin subir) no se veía hasta que
+  revisamos los entregables contra la consigna.
+
+### Limitaciones
+
+- **Los 150 casos de práctica son pocos y se parecen a los de entrenamiento.** Los casos sintéticos
+  salen del mismo generador que (suponemos) usa la cátedra, así que 149/150 es una cota optimista. Si
+  el test secreto trae situaciones que ningún operador ni el generador cubrieron, el modelo no las
+  vio: solo sabe escribir las 14 consultas que aprendió.
+- **El modelo quedó especializado.** Fuera de la tarea, con o sin su prompt, no lo evaluamos;
+  probablemente responda con el formato JSON del agente.
+- **La costumbre del voluntariado depende del prompt.** Con el prompt de la cátedra el modelo la
+  aprendió solo en parte (0,86): con pocos ejemplos positivos (11%), la regla escrita en el prompt
+  final es la que la asegura.
+- **Diferencias mínimas de reproducibilidad** entre calcular los embeddings en CPU y en GPU (un caso
+  en b y otro en c, con el mismo total).
+
+### Conclusión
+
+Empezamos con un modelo que resolvía 21 de 150 casos y terminamos con uno que resuelve 149, con
+menos de la mitad del contexto de búsqueda de la referencia, a 0,44 s y USD 0,00026 por caso, en una
+sola GPU y con todo el desarrollo dentro de USD 23. Lo que más nos llevamos no es el número sino el
+recorrido: la mayoría de las mejoras vinieron de entender por qué fallaba algo (un buscador por
+palabras con consultas coloquiales, un reflector que borraba el contrato, una regla que contradecía
+a los datos, un buscador de a una consulta) más que de probar configuraciones. Y que dejar todo
+auditable no es un trámite al final: fue lo que nos permitió encontrar esos errores y corregirlos con
+evidencia.
