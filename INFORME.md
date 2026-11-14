@@ -420,10 +420,16 @@ final es ese corregido, `prompt/sistema_final.txt`.
   - `sft-reales`: las 1600 conversaciones reales, 2 épocas;
   - `sft-mixto`: las 1600 reales y 1600 sintéticas con normas sorteadas, 1 época.
 - **Auditabilidad:** cada corrida sube el archivo exacto de conversaciones a
-  `Pedro2204/admision-gemma4-e4b-datos` y registra su revisión y su sha256. Los adaptadores
-  intermedios van cada 100 pasos a la rama `<corrida>-checkpoints` de `Pedro2204/admision-gemma4-e4b`,
-  y el modelo fusionado, a ese repo con la etiqueta `<corrida>`. La corrida queda en el proyecto
-  `admision-guardia` de W&B con la configuración, la semilla y esas revisiones.
+  `Pedro2204/admision-gemma4-e4b-datos` y registra su revisión y su sha256. El modelo fusionado va a
+  `Pedro2204/admision-gemma4-e4b` con la etiqueta `<corrida>`. Los adaptadores LoRA intermedios, uno
+  cada 100 pasos, quedan en la rama `<corrida>-checkpoints` de ese repo, con la etiqueta
+  `<corrida>-checkpoint-N`. La corrida queda en el proyecto `admision-guardia` de W&B con la
+  configuración, la semilla y esas revisiones.
+- **Un error de auditabilidad que corregimos después:** Trainer sube los puntos de control a
+  `hub_revision`, pero no crea esa rama, así que en las cinco corridas los intermedios quedaron solo en
+  el volumen de Modal. Los subimos después con `entrenamiento/subir_checkpoints.py` (16 adaptadores:
+  pasos 100, 200, 300 y 400 de las cuatro corridas reales) y `sft.py` ahora crea la rama antes de
+  entrenar. Los modelos fusionados que se evalúan siempre se subieron bien.
 
 ```bash
 uv run modal run modal_app.py --comando "python -m entrenamiento.sft --datos /cache/datos/entrenamiento-reales.jsonl \
