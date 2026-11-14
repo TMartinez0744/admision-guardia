@@ -442,8 +442,19 @@ Casos resueltos sobre los 50 de práctica:
 | Referencia, con SFT | 25 | 24 | 25 |
 | Nuestro modelo, sin entrenar | 11 | 5 | 5 |
 | Solo prompt | 13 | 15 | 13 |
-| Solo entrenamiento | `<TODO>` | `<TODO>` | `<TODO>` |
-| Prompt + entrenamiento | `<TODO>` | `<TODO>` | `<TODO>` |
+| Solo entrenamiento (`sft-mixto-catedra`, prompt de la cátedra) | 42 | 45 | 42 |
+| **Prompt + entrenamiento: modelo final (`sft-mixto-final`)** | **49** | **50** | **50** |
+
+Las dos últimas filas son con el buscador en la GPU (Parte 5). La última es `entrega.py` tal cual, en el
+commit `59632ea`, sin ninguna variable de entorno: exactamente lo que corre la cátedra
+(`evaluacion/corridas/entrega-*`). Punto de control: `Pedro2204/admision-gemma4-e4b`, revisión
+`671cca684d39f1e78a5856ae6414e3fff20e8a06` (etiqueta `sft-mixto-final`); prompt:
+`prompt/sistema_final.txt`.
+
+```bash
+uv run modal run modal_app.py --comando "python -m admision.correr practica --entrega entrega.py ..."  # ver README, sección 4
+uv run python -m evaluacion.tabla evaluacion/corridas/entrega
+```
 
 ### Primeras corridas: reales contra mixto
 
@@ -482,19 +493,151 @@ la corrida sin evaluar b y c.
 
 **Segundo intento: reentrenar con el prompt corregido dentro de los datos**
 (`datos/entrenamiento-mixto-final.jsonl`, sha256 `bc6ad9fd…`, los mismos 1600 + 1600 casos con el
-prompt corregido), para que el texto y los ejemplos digan lo mismo: corrida `sft-mixto-final`.
+prompt corregido), para que el texto y los ejemplos digan lo mismo: corrida `sft-mixto-final`
+(6.034 s, revisión `671cca68`). **Funcionó: 49, 50 y 50.** `aviso_al_voluntariado` pasa a 1,00 en las
+tres versiones.
+
+### Solo entrenamiento: el prompt optimizado estorba una vez entrenado
+
+Para la fila "solo entrenamiento" entrenamos con los mismos 3200 casos pero con el prompt de la
+cátedra (`sft-mixto-catedra`, 3.693 s, revisión `d1d5a224`) y lo evaluamos con ese prompt: **42, 44
+y 43** (129/150), muy por encima del mixto con el prompt de GEPA sin corregir (107/150). Sin una regla
+equivocada en el prompt, el modelo aprende la costumbre de los datos, aunque no del todo: falla 18 de
+los 42 casos de 75 años o más sin acompañante y avisa de más en 3, porque solo el 11% de los ejemplos
+avisa. Con el prompt corregido (modelo final) no falla ninguno.
+
+| Corrida | Prompt | Original | b | c | Total | Tokens de contexto por caso |
+|---|---|---|---|---|---|---|
+| `sft-reales` | optimizado | 40 | 31 | 36 | 107 | 15.725 |
+| `sft-mixto` | optimizado | 36 | 35 | 36 | 107 | 16.400 |
+| `sft-mixto` | final, sin reentrenar | 30 | – | – | – | – |
+| `sft-mixto-catedra` | cátedra | 42 | 45 | 42 | 129 | 8.235 |
+| **`sft-mixto-final`** | **final** | **49** | **50** | **50** | **149** | 16.416 |
+
+Lo que sacamos en limpio de la Parte 4:
+
+- **Entrenar es lo que más pesa:** de 41/150 con solo el prompt a 149/150. El oficio (qué buscar, qué
+  preguntar, a quién verificar) lo aprende el modelo; el prompt solo no lo consigue.
+- **Las sintéticas con normas sorteadas hacen al modelo robusto a los números:** el mixto se mantiene
+  igual con las tres versiones de normas, y el que solo vio las originales cae con b.
+- **El prompt tiene que decir lo mismo que los datos.** Una sola regla equivocada del prompt
+  optimizado le costó al modelo entrenado 42 casos; corregirla al usarlo, sin reentrenar, lo empeoró.
+- **El único caso que falla el modelo final** es `pev-049` con las normas originales: 71 años, cuando
+  la edad para ir al box antes del registro es 67. Registró `box_antes_del_registro: false`. La
+  búsqueda "registro del paciente y ubicación en el box" trajo primero NOR-ADM-01 §4; es más un
+  límite del buscador que del modelo.
+
+### Reproducibilidad
+
+- Volver a correr `sft-mixto-catedra` con el buscador en la GPU en lugar de la CPU dio 42, 45 y 42
+  contra 42, 44 y 43: **un caso cambia de lado en b y otro en c**, con el mismo total (129). Los
+  embeddings en GPU difieren de los de CPU en los últimos decimales y eso puede reordenar algún
+  párrafo empatado. Las métricas de `evaluar_rag` no cambian (recall 0,883, 52/60).
+- La evaluación del modelo final con variables de entorno (`gpu-final`) y la de `entrega.py` tal cual
+  (`entrega`) dan lo mismo caso por caso: 49, 50 y 50.
 
 ## Parte 5 — Recursos y producción
 
-- Tiempo de entrenamiento: `<TODO>`
-- VRAM usada: `<TODO>`
-- Costo y tiempo por caso en la A100 de 40 GB: con el modelo sin entrenar, los 50 casos juegan a la
-  vez en unos 37 s, o sea **0,74 s por caso**, con 4.278 tokens de contexto por caso. Cargar el
-  modelo tarda 271 s y armar el buscador 50 s, una sola vez por proceso
-  (`evaluacion/corridas/base-<versión>/resumen.json`). `<TODO: costo con el modelo final>`
-- Casos que procesamos a la vez: al evaluar, **los 50 casos en el mismo lote**: vLLM agrupa en cada
-  vuelta las conversaciones que siguen activas. `<TODO: entrenamiento>`
-- Casos simultáneos que tolera en producción: `<TODO>`
-- Proyección de consumo: `<TODO>`
-- Cómo escalaríamos: `<TODO>`
-- Trabajos futuros: `<TODO>`
+Todo corrió en una **A100 de 40 GB de Modal** (`modal_app.py`, `gpu="A100-40GB"`), que cuesta
+**USD 0,000583 por segundo (2,10 por hora)** según la página de precios de Modal.
+
+### Entrenamiento
+
+| Corrida | Datos | Épocas | Tiempo | Costo de GPU | Pico de VRAM |
+|---|---|---|---|---|---|
+| `humo` | 1600 reales | 0,01 | 37 s | 0,02 | 17,6 GB |
+| `sft-reales` | 1600 reales | 2 | 6.170 s (1 h 43 min) | 3,60 | 17,7 GB |
+| `sft-mixto` | 1600 + 1600 | 1 | 5.941 s (1 h 39 min) | 3,46 | 17,8 GB |
+| `sft-mixto-catedra` | 1600 + 1600, prompt cátedra | 1 | 3.693 s (1 h 02 min) | 2,15 | 17,1 GB |
+| **`sft-mixto-final`** | 1600 + 1600, prompt final | 1 | **6.034 s (1 h 41 min)** | **3,52** | **17,8 GB** |
+
+Los tiempos y la VRAM salen de `evaluacion/entrenamientos/<corrida>/resumen.json`; el costo es
+tiempo × precio, sin contar la carga del modelo y la subida a Hugging Face.
+
+- **VRAM:** el entrenamiento usa menos de la mitad de la GPU (17,8 GB de 40). LoRA de rango 16 sobre
+  el modelo en bf16, con gradient checkpointing y una conversación por pasada.
+- **Paralelismo al entrenar: bajo.** Una conversación por pasada y 8 de acumulación, porque los logits
+  de un lote mayor (vocabulario de 262k tokens) no entraban. Con la mitad de la GPU libre, un trabajo
+  futuro es empaquetar conversaciones (`padding_free`) o calcular la pérdida por bloques para subir el
+  lote y bajar el tiempo.
+- **El prompt pesa en el entrenamiento:** con el de la cátedra (615 tokens) se entrena en 1 h 02 min;
+  con el final (1.909 tokens), en 1 h 41 min.
+
+### Uso: tiempo, costo y casos a la vez
+
+**Evaluación oficial** (`entrega.py` sobre los 50 casos de práctica, `evaluacion/corridas/entrega-*`):
+los 50 casos de cada versión juegan en un solo lote en unos 22 s, o sea **0,42 a 0,45 s por caso**,
+con 6,5 a 6,8 llamadas y 3,3 búsquedas por caso y 16.416 tokens de contexto por caso. Armar el
+buscador tarda unos 5 s; cargar el agente, de 119 a 254 s (más la primera vez, que baja los pesos).
+**Costo por caso: 0,44 s × 0,000583 = USD 0,00026**, sin contar la carga.
+
+**Capacidad** (`evaluacion/capacidad.py`, casos generados con semilla 1, normas originales,
+`evaluacion/corridas/capacidad-entrega/capacidad.json`):
+
+| Casos a la vez | Segundos | Segundos por caso | Casos por segundo | Resueltos |
+|---|---|---|---|---|
+| 25 | 15,5 | 0,62 | 1,6 | 25 / 25 |
+| 50 | 18,0 | 0,36 | 2,8 | 50 / 50 |
+| 100 | 24,7 | 0,25 | 4,0 | 100 / 100 |
+| **200** | **37,3** | **0,19** | **5,4** | **199 / 200** |
+| 400 | 91,4 | 0,23 | 4,4 | 397 / 400 |
+
+- **Casos simultáneos que tolera: unos 200 por A100.** vLLM le deja a la caché de atención
+  473.791 tokens. Hasta 200 casos el tiempo casi no crece con la cantidad (de 15,5 s a 37,3 s
+  multiplicando por 8 los casos); con 400 la caché se llena, las conversaciones esperan turno y el
+  rendimiento baja. En el punto óptimo, **0,19 s y USD 0,00011 por caso**.
+- **Calidad en casos nuevos:** sobre 400 casos generados que el modelo nunca vio, resuelve 397
+  (99,3%), coherente con los 149/150 de práctica.
+
+**La optimización que lo hizo posible: el buscador en la GPU.** La misma prueba con el modelo
+`sft-mixto-catedra` y el buscador en CPU (`evaluacion/corridas/capacidad-sft-catedra`) casi no
+escalaba: 1,63 s por caso con 25 casos y 1,20 con 400. En la máquina de Modal PyTorch usa un solo hilo
+y bge-m3 tarda **224 ms por consulta en CPU contra 14 ms en la A100**; el entorno llama al buscador de a
+una consulta, y con 3,3 búsquedas por caso eran unos 0,74 s por caso solo de buscador. Pasamos bge-m3 a
+la GPU (unos 2 GB, una sola copia por proceso) y le dejamos lugar limitando vLLM al 85% de la memoria
+(`MEMORIA_VLLM`). Los resultados no cambian (salvo un caso en b y otro en c, ver Parte 4) y el tiempo
+por caso del mismo modelo baja de 1,66 s a 0,42 s.
+
+### Producción: proyección de consumo y escalado
+
+- **Demanda esperable:** una guardia grande admite del orden de cientos de pacientes por día. Una sola
+  A100 a 5,4 casos por segundo procesa unos **19.000 casos por hora**: sobra capacidad por varios
+  órdenes de magnitud.
+- **Costo por paciente:** USD 0,00011 a 0,00026 de GPU. Con 500 admisiones por día son **centavos de
+  dólar por día de cómputo** si se paga solo por uso.
+- **Lo que domina el costo es mantener la GPU prendida, no procesar casos.** Una A100 encendida todo el
+  día cuesta unos USD 50 por día. En Modal el contenedor puede apagarse cuando no hay casos y prenderse
+  con el primero, pero el arranque tarda de 2 a 4 minutos (cargar el modelo), demasiado para un
+  paciente que espera. Para producción proponemos **un contenedor siempre encendido en los horarios de
+  más demanda** y apagado de noche, o un instantáneo de memoria del contenedor para arrancar en segundos.
+- **Si sube la demanda:** primero, más casos a la vez en la misma GPU (hasta ~200); después, **réplicas
+  horizontales** detrás de una cola (en Modal, `max_containers`), cada una con su A100 y ~200 casos
+  simultáneos. El modelo entra en 34 GB, así que también puede ir en GPUs más baratas de 24 GB (L4,
+  A10) cuantizándolo a 8 bits, si la demanda es baja y conviene pagar menos por hora.
+- **Mantenimiento:** si cambian los números de las normas no hay que hacer nada: el buscador lee la
+  carpeta de normas que recibe. Si cambia una costumbre o una regla, hay que regenerar los datos
+  (`entrenamiento.datos`, unos 20 minutos en CPU) y reentrenar (1 h 40 min, unos USD 3,50).
+
+### Costo de punta a punta del desarrollo
+
+**USD 22,02 de créditos de Modal en total, sin cargos** (panel de uso de Modal), incluidas todas las
+corridas, también las que fallaron: tres arranques fallidos de la línea base, la primera pasada de GEPA,
+la prueba de humo y la evaluación del prompt corregido sin reentrenar. Cerca de 15 de esos 22 dólares
+son los cinco entrenamientos; el resto, línea base, GEPA, evaluaciones y pruebas de capacidad. Los
+datos sintéticos y el etiquetado corrieron en CPU, en una computadora del grupo, sin costo.
+
+### Trabajos futuros
+
+- **Acortar el prompt.** El final tiene 1.909 tokens y es dos tercios del contexto de cada caso. Una
+  vez entrenado, el modelo depende poco de él: probar GEPA con el largo como segundo objetivo, o
+  directamente un prompt mínimo entrenado con sus datos.
+- **Mejorar el buscador para `box_antes_del_registro`:** el único caso que falla el modelo final es una
+  búsqueda que no trajo arriba el párrafo de NOR-ADM-02.
+- **Balancear la costumbre del voluntariado:** solo el 11% de los ejemplos avisa. Más sintéticos de
+  pacientes de 75 años o más sin acompañante harían menos dependiente al modelo del prompt.
+- **Aprovechar las filas con error del historial** con DPO (respuesta correcta contra la del operador).
+- **Evaluar los puntos de control intermedios.** La pérdida baja casi a cero antes de la mitad de la
+  época; un punto de control anterior podría rendir igual con menos riesgo de sobreajuste.
+- **Entrenar más rápido:** empaquetar conversaciones y subir el lote, con la mitad de la GPU libre.
+- **Bajar el costo de uso:** cuantizar a 8 bits, probar GPUs más chicas y hacer las búsquedas de todos
+  los casos activos en un solo lote del modelo de embeddings.

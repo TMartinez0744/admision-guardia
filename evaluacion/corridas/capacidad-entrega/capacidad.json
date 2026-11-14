@@ -1,0 +1,43 @@
+{
+  "modelo": "Pedro2204/admision-gemma4-e4b",
+  "revision": "671cca684d39f1e78a5856ae6414e3fff20e8a06",
+  "prompt": "/root/admision-guardia/prompt/sistema_final.txt",
+  "segundos_carga_agente": 124.1,
+  "lotes": [
+    {
+      "casos": 25,
+      "segundos": 15.5,
+      "segundos_por_caso": 0.621,
+      "casos_por_segundo": 1.61,
+      "resueltos": 25
+    },
+    {
+      "casos": 50,
+      "segundos": 18.0,
+      "segundos_por_caso": 0.361,
+      "casos_por_segundo": 2.77,
+      "resueltos": 50
+    },
+    {
+      "casos": 100,
+      "segundos": 24.7,
+      "segundos_por_caso": 0.247,
+      "casos_por_segundo": 4.04,
+      "resueltos": 100
+    },
+    {
+      "casos": 200,
+      "segundos": 37.3,
+      "segundos_por_caso": 0.186,
+      "casos_por_segundo": 5.37,
+      "resueltos": 199
+    },
+    {
+      "casos": 400,
+      "segundos": 91.4,
+      "segundos_por_caso": 0.229,
+      "casos_por_segundo": 4.38,
+      "resueltos": 397
+    }
+  ]
+}
