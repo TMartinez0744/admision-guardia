@@ -15,13 +15,14 @@ from buscador.hibrido import BuscadorHibrido
 
 # El modelo se baja de este repositorio, con HF_TOKEN tomado del entorno.
 # La revision es el commit o la etiqueta exacta del punto de control final.
-# Linea de base: Gemma 4 E4B sin entrenar, fijado al commit de Hugging Face.
-# Cuando haya un modelo entrenado, va acá el repositorio del grupo.
-MODELO_HF = "google/gemma-4-E4B-it"
-REVISION_HF = "4ecc2ba63bcac23ba4a767fc87025b1450f84c9c"
+# Punto de control final: Gemma 4 E4B con SFT (LoRA fusionado), corrida
+# sft-mixto-final (ver INFORME, Parte 4). Repositorio privado: hace falta HF_TOKEN.
+MODELO_HF = "Pedro2204/admision-gemma4-e4b"
+REVISION_HF = "671cca684d39f1e78a5856ae6414e3fff20e8a06"
 
-# Mensaje de sistema: el que eligió la optimización de prompt (Parte 3).
-RUTA_PROMPT = Path(__file__).parent / "prompt" / "sistema_optimizado.txt"
+# Mensaje de sistema: el optimizado por GEPA (Parte 3) con la regla del voluntariado
+# corregida (Parte 4). Es el mismo con el que se entrenó el punto de control final.
+RUTA_PROMPT = Path(__file__).parent / "prompt" / "sistema_final.txt"
 
 # Contexto maximo por conversacion. Si una conversacion lo supera, vLLM falla.
 MAX_CONTEXTO = 32768
