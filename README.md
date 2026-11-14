@@ -4,8 +4,8 @@ Trabajo final — Inteligencia Artificial Generativa — Universidad Austral —
 
 | | |
 |---|---|
-| Modelo en Hugging Face | [Pedro2204/admision-gemma4-e4b](https://huggingface.co/Pedro2204/admision-gemma4-e4b) (privado) — revisión del punto de control final: `671cca684d39f1e78a5856ae6414e3fff20e8a06` (etiqueta `sft-mixto-final`) |
-| Datos de entrenamiento | [Pedro2204/admision-gemma4-e4b-datos](https://huggingface.co/datasets/Pedro2204/admision-gemma4-e4b-datos) (privado) |
+| Modelo en Hugging Face | [grupo11-admision-guardia/admision-gemma4-e4b](https://huggingface.co/grupo11-admision-guardia/admision-gemma4-e4b) (privado) — revisión del punto de control final: `671cca684d39f1e78a5856ae6414e3fff20e8a06` (etiqueta `sft-mixto-final`) |
+| Datos de entrenamiento | [grupo11-admision-guardia/admision-gemma4-e4b-datos](https://huggingface.co/datasets/grupo11-admision-guardia/admision-gemma4-e4b-datos) (privado) |
 | Proyecto de W&B | [pdelaguila-universidad-austral/admision-guardia](https://forge.coreweave.com/wandb/pdelaguila-universidad-austral/admision-guardia) |
 | Presentación en Loom | pendiente |
 

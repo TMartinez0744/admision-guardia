@@ -17,7 +17,7 @@ from buscador.hibrido import BuscadorHibrido
 # La revision es el commit o la etiqueta exacta del punto de control final.
 # Punto de control final: Gemma 4 E4B con SFT (LoRA fusionado), corrida
 # sft-mixto-final (ver INFORME, Parte 4). Repositorio privado: hace falta HF_TOKEN.
-MODELO_HF = "Pedro2204/admision-gemma4-e4b"
+MODELO_HF = "grupo11-admision-guardia/admision-gemma4-e4b"
 REVISION_HF = "671cca684d39f1e78a5856ae6414e3fff20e8a06"
 
 # Mensaje de sistema: el optimizado por GEPA (Parte 3) con la regla del voluntariado
