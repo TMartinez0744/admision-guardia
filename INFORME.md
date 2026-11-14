@@ -59,7 +59,11 @@ minutos de menos. Lo fija NOR-TDE-04 §1 para los pacientes que llegan en ambula
 
 ### Conversaciones de entrenamiento
 
-**1600 reales, 0 sintéticas.**
+**En total: 1600 reales y 1600 sintéticas.** Las reales salen de las 1600 filas correctas del
+historial; las sintéticas, de un operador experto programado (ver la segunda versión, más abajo). El
+modelo final se entrenó con las 3200 juntas.
+
+**Primera versión: 1600 reales, 0 sintéticas.**
 
 Cada traza del historial es una lista de pasos; el modelo se entrena con diálogos. `curado/conversaciones.py`
 hace la conversión al formato del agente de ejemplo: mensaje de sistema, pedido inicial, y después un mensaje
@@ -97,12 +101,19 @@ Para entrenar (Parte 4) armamos las conversaciones con `entrenamiento/datos.py`,
   distintos y tiene que leerlos del buscador. Solo entran los episodios que el comparador del kit da
   por resueltos: **1600 de 1600**, sin descartes.
 
-| Archivo | Reales | Sintéticas | sha256 |
-|---|---|---|---|
-| `datos/entrenamiento-reales.jsonl` | 1600 | 0 | `b2c2c9dd…` |
-| `datos/entrenamiento-mixto.jsonl` | 1600 | 1600 | `b38b889b…` |
+Generamos cuatro archivos, uno por entrenamiento de la Parte 4; cambian solo el mensaje de sistema y
+si llevan sintéticas. Los cuatro están en el repositorio de datasets
+`Pedro2204/admision-gemma4-e4b-datos`, con la revisión que registró cada entrenamiento:
 
-Los dos llevan el mensaje de sistema optimizado de la Parte 3. Se generan con semilla 0:
+| Archivo | Reales | Sintéticas | Prompt | sha256 | Revisión en HF | Entrenamiento |
+|---|---|---|---|---|---|---|
+| `datos/entrenamiento-reales.jsonl` | 1600 | 0 | optimizado | `b2c2c9dd…` | `9552900a` | `sft-reales` |
+| `datos/entrenamiento-mixto.jsonl` | 1600 | 1600 | optimizado | `b38b889b…` | `a8b7cecf` | `sft-mixto` |
+| `datos/entrenamiento-mixto-catedra.jsonl` | 1600 | 1600 | de la cátedra | `eb73a57b…` | `86ca6f00` | `sft-mixto-catedra` |
+| **`datos/entrenamiento-mixto-final.jsonl`** | **1600** | **1600** | **final** | **`bc6ad9fd…`** | **`d1678aeb`** | **`sft-mixto-final`** |
+
+En las tres generaciones con sintéticas entraron las 1600, sin descartes. Se generan con semilla 0
+(los otros dos cambian `--sistema` y la salida; ver README, sección 5):
 
 ```bash
 uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_optimizado.txt \
@@ -149,7 +160,7 @@ versión sea vectorial.
 solo BM25, solo embeddings (`denso`) e `hibrido`, que fusiona los dos rankings con Reciprocal Rank
 Fusion (constante 60). Probamos tres modelos de embeddings multilingües, cada uno fijado a su commit
 de Hugging Face: `intfloat/multilingual-e5-small`, `intfloat/multilingual-e5-base` y `BAAI/bge-m3`.
-Corren en CPU, para no quitarle VRAM al modelo del agente.
+En esta etapa corrían en CPU, para no quitarle VRAM al modelo del agente; en la Parte 5 los pasamos a la GPU, que es 16 veces más rápida, con las mismas métricas.
 
 ```bash
 uv run python -m buscador.comparar --kit <ruta al kit>
@@ -216,6 +227,11 @@ Dos salvedades:
   1,000 a 0,250, y no porque el buscador empeore.
 
 ### Cuánto rinde el agente con nuestro buscador
+
+**Con el agente final** (Parte 4), el mismo buscador alcanza para **149 de 150 casos** de práctica.
+El modelo hace 3,3 búsquedas por caso, unos 900 tokens de normas. El único caso que falla
+(`pev-049`, normas originales) es una búsqueda que no trajo arriba el párrafo de NOR-ADM-02 con la
+edad del box. Abajo, la primera medición: con el modelo sin entrenar.
 
 Línea base: Gemma 4 E4B sin entrenar, con el agente y el mensaje de sistema de ejemplo de la
 cátedra, y nuestro buscador (bge-m3, `k = 3`), sobre los 50 casos de práctica. Corrió en una A100
@@ -352,8 +368,9 @@ Lo que observamos:
 ### Resultados
 
 Con el modelo **sin entrenar**, sobre los 50 casos de práctica y las tres versiones de normas.
-Cada fila sale de `uv run python -m evaluacion.tabla evaluacion/corridas/<corrida>`, con el commit
-`2ce3280` y el prompt que indica (`ADMISION_PROMPT`):
+Cada fila sale de `uv run python -m evaluacion.tabla evaluacion/corridas/<corrida>`, con el prompt
+que indica (`ADMISION_PROMPT`); `base` corrió en el commit `5d369fd` y `ini` y `opt`, en `2ce3280`
+(ver `evaluacion/corridas/README.md`). Los largos se miden con el tokenizador de Gemma 4:
 
 | Prompt | Original | b | c | Total | Largo del prompt (tokens) | Tokens de contexto por caso | Segundos por caso |
 |---|---|---|---|---|---|---|---|
@@ -574,7 +591,7 @@ tiempo × precio, sin contar la carga del modelo y la subida a Hugging Face.
   futuro es empaquetar conversaciones (`padding_free`) o calcular la pérdida por bloques para subir el
   lote y bajar el tiempo.
 - **El prompt pesa en el entrenamiento:** con el de la cátedra (615 tokens) se entrena en 1 h 02 min;
-  con el final (1.909 tokens), en 1 h 41 min.
+  con el final (1.911 tokens), en 1 h 41 min.
 
 ### Uso: tiempo, costo y casos a la vez
 
@@ -633,15 +650,15 @@ por caso del mismo modelo baja de 1,66 s a 0,42 s.
 
 ### Costo de punta a punta del desarrollo
 
-**USD 22,02 de créditos de Modal en total, sin cargos** (panel de uso de Modal), incluidas todas las
+**USD 22,13 de créditos de Modal en total, sin cargos** (panel de uso de Modal, al 14/11), incluidas todas las
 corridas, también las que fallaron: tres arranques fallidos de la línea base, la primera pasada de GEPA,
-la prueba de humo y la evaluación del prompt corregido sin reentrenar. Cerca de 15 de esos 22 dólares
+la prueba de humo y la evaluación del prompt corregido sin reentrenar, y también las tareas de auditoría posteriores (medir el buscador, subir los puntos de control intermedios, correr un caso para el README). Cerca de 15 de esos 22
 son los cinco entrenamientos; el resto, línea base, GEPA, evaluaciones y pruebas de capacidad. Los
 datos sintéticos y el etiquetado corrieron en CPU, en una computadora del grupo, sin costo.
 
 ### Trabajos futuros
 
-- **Acortar el prompt.** El final tiene 1.909 tokens y es dos tercios del contexto de cada caso. Una
+- **Acortar el prompt.** El final tiene 1.911 tokens y es dos tercios del contexto de cada caso. Una
   vez entrenado, el modelo depende poco de él: probar GEPA con el largo como segundo objetivo, o
   directamente un prompt mínimo entrenado con sus datos.
 - **Mejorar el buscador para `box_antes_del_registro`:** el único caso que falla el modelo final es una

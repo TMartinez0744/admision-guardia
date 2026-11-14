@@ -43,6 +43,7 @@ demás eligen el modelo y el prompt con `ADMISION_MODELO`, `ADMISION_REVISION` y
 | `gepa2` | Optimización de prompt (Parte 3), segunda pasada | `prompt.optimizar` | `6d6e9ce` | sin entrenar; semilla 0 |
 | `capacidad-sft-catedra` | Capacidad con el buscador en CPU (Parte 5) | `evaluacion.capacidad` | `a3e3c0a`–`d171ef9` | `sft-mixto-catedra` `d1d5a224`, `sistema_catedra.txt` |
 | `capacidad-entrega` | Capacidad del sistema final (Parte 5) | `evaluacion.capacidad` | `59632ea` | `sft-mixto-final` `671cca68`, `sistema_final.txt` |
+| `un-caso` | `entrega.py` sobre el caso `pev-001` con las normas b, el ejemplo del README | `admision.correr practica` | `8e9cd33` | `sft-mixto-final` `671cca68`, `sistema_final.txt`; 9/9 controles |
 
 Los resúmenes de cada entrenamiento (datos y su revisión, semilla, configuración, tiempo, VRAM,
 revisión del modelo y corrida de W&B) están en `evaluacion/entrenamientos/<corrida>/resumen.json`.

@@ -1,0 +1,27 @@
+{
+  "casos": 1,
+  "resueltos": 1,
+  "parcial_medio": 1.0,
+  "por_control": {
+    "registro": 1.0,
+    "numero_documento": 1.0,
+    "box_antes_del_registro": 1.0,
+    "circuito": 1.0,
+    "plazo_circuito_min": 1.0,
+    "cobertura": 1.0,
+    "entidad_a_notificar": 1.0,
+    "aviso_al_voluntariado": 1.0,
+    "verificacion": 1.0
+  },
+  "sin_decision": 0,
+  "llamadas_medio": 6.0,
+  "busquedas_por_caso": 3.0,
+  "caracteres_de_contexto_por_caso": 56038,
+  "segundos": {
+    "construir_buscador": 6.172,
+    "construir_agente": 276.476,
+    "jugar_lote": 5.444,
+    "jugar_lote_por_caso": 5.444
+  },
+  "error": null
+}
