@@ -40,6 +40,10 @@ SIN_ENTRENAR = "#9ec5f4"    # nuestro modelo sin entrenar (con o sin prompt opti
 ENTRENADO = "#3987e5"       # entrenamientos intermedios
 FINAL = "#184f95"           # el modelo final
 APARTE = "#9b9a95"          # una variante que se compara (gris medio)
+# Un color por entrenamiento, el mismo en la curva de pérdida y en los recursos. Validados para
+# daltonismo con el final: naranja, verde y azul oscuro se distinguen entre sí.
+COLOR_CORRIDA = {"sft-reales": APARTE, "sft-mixto": "#eb6834", "sft-mixto-catedra": "#1baf7a",
+                 "sft-mixto-final": FINAL}
 # Estados de la clasificación del historial (siempre con su nombre escrito).
 CORRECTA, RUIDO, ERROR = "#0ca30c", "#fab219", "#d03b3b"
 # Rampa secuencial para el mapa de calor.
@@ -183,10 +187,11 @@ def tabla_parte4() -> None:
 
 def perdida() -> None:
     """Curvas de pérdida de los cuatro entrenamientos."""
-    corridas = [("sft-reales", "Solo reales, 2 épocas", APARTE),
-                ("sft-mixto", "Reales + sintéticas, prompt de GEPA", SIN_ENTRENAR),
-                ("sft-mixto-catedra", "Reales + sintéticas, prompt de la cátedra", ENTRENADO),
-                ("sft-mixto-final", "Reales + sintéticas, prompt corregido (final)", FINAL)]
+    corridas = [(n, e, COLOR_CORRIDA[n]) for n, e in [
+        ("sft-reales", "Solo reales, 2 épocas"),
+        ("sft-mixto", "Reales + sintéticas, prompt de GEPA"),
+        ("sft-mixto-catedra", "Reales + sintéticas, prompt de la cátedra"),
+        ("sft-mixto-final", "Reales + sintéticas, prompt corregido (final)")]]
     fig, ax = figura("La pérdida cae a casi cero antes de la mitad del entrenamiento",
                      "Pérdida sobre las respuestas del agente, en escala logarítmica",
                      "evaluacion/entrenamientos/*/perdida.json (bajado de W&B)", abajo=46)
@@ -249,10 +254,11 @@ def capacidad() -> None:
 
 def recursos() -> None:
     """Tiempo, costo y VRAM de cada entrenamiento en la A100 de 40 GB."""
-    corridas = [("sft-reales", "Solo reales, 2 épocas", APARTE),
-                ("sft-mixto", "Reales + sintéticas, prompt de GEPA", SIN_ENTRENAR),
-                ("sft-mixto-catedra", "Reales + sintéticas, prompt de la cátedra", ENTRENADO),
-                ("sft-mixto-final", "Reales + sintéticas, prompt corregido (final)", FINAL)]
+    corridas = [(n, e, COLOR_CORRIDA[n]) for n, e in [
+        ("sft-reales", "Solo reales, 2 épocas"),
+        ("sft-mixto", "Reales + sintéticas, prompt de GEPA"),
+        ("sft-mixto-catedra", "Reales + sintéticas, prompt de la cátedra"),
+        ("sft-mixto-final", "Reales + sintéticas, prompt corregido (final)")]]
     datos = [json.loads((ENTRENAMIENTOS / n / "resumen.json").read_text(encoding="utf-8")) for n, _, _ in corridas]
     paneles = [("Tiempo (minutos)", [d["segundos"] / 60 for d in datos], 120, "{:.0f} min"),
                ("Costo de GPU (USD)", [d["segundos"] * PRECIO_A100_SEGUNDO for d in datos], 4.5, "USD {:.2f}"),
