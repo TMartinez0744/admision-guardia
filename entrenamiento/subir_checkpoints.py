@@ -6,7 +6,7 @@ crea y sube cada ``checkpoint-N`` como carpeta, en un commit propio, y deja una
 etiqueta ``<corrida>-checkpoint-N`` por punto de control.
 
     uv run modal run modal_app.py --comando "python -m entrenamiento.subir_checkpoints \
-        --hub Pedro2204/admision-gemma4-e4b --modelos /cache/modelos"
+        --hub grupo11-admision-guardia/admision-gemma4-e4b --modelos /cache/modelos"
 
 Necesita ``HF_TOKEN`` con permiso de escritura.
 """

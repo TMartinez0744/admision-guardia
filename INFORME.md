@@ -152,7 +152,11 @@ Para entrenar (Parte 4) armamos las conversaciones con `entrenamiento/datos.py`,
 
 Generamos cuatro archivos, uno por entrenamiento de la Parte 4; cambian solo el mensaje de sistema y
 si llevan sintéticas. Los cuatro están en el repositorio de datasets
-`Pedro2204/admision-gemma4-e4b-datos`, con la revisión que registró cada entrenamiento:
+`grupo11-admision-guardia/admision-gemma4-e4b-datos`.
+Los entrenamientos se hicieron con los repositorios en la cuenta `Pedro2204` y después los pasamos a
+la organización `grupo11-admision-guardia` para compartirlos. Por eso los `resumen.json` todavía
+nombran `Pedro2204/...`; Hugging Face redirige esos nombres y las revisiones no cambiaron.
+Las revisiones de cada entrenamiento:
 
 | Archivo | Reales | Sintéticas | Prompt | sha256 | Revisión en HF | Entrenamiento |
 |---|---|---|---|---|---|---|
@@ -486,8 +490,8 @@ final es ese corregido, `prompt/sistema_final.txt`.
   - `sft-reales`: las 1600 conversaciones reales, 2 épocas;
   - `sft-mixto`: las 1600 reales y 1600 sintéticas con normas sorteadas, 1 época.
 - **Auditabilidad:** cada corrida sube el archivo exacto de conversaciones a
-  `Pedro2204/admision-gemma4-e4b-datos` y registra su revisión y su sha256. El modelo fusionado va a
-  `Pedro2204/admision-gemma4-e4b` con la etiqueta `<corrida>`. Los adaptadores LoRA intermedios, uno
+  `grupo11-admision-guardia/admision-gemma4-e4b-datos` y registra su revisión y su sha256. El modelo fusionado va a
+  `grupo11-admision-guardia/admision-gemma4-e4b` con la etiqueta `<corrida>`. Los adaptadores LoRA intermedios, uno
   cada 100 pasos, quedan en la rama `<corrida>-checkpoints` de ese repo, con la etiqueta
   `<corrida>-checkpoint-N`. La corrida queda en el proyecto `admision-guardia` de W&B con la
   configuración, la semilla y esas revisiones.
@@ -499,9 +503,9 @@ final es ese corregido, `prompt/sistema_final.txt`.
 
 ```bash
 uv run modal run modal_app.py --comando "python -m entrenamiento.sft --datos /cache/datos/entrenamiento-reales.jsonl \
-    --nombre sft-reales --hub Pedro2204/admision-gemma4-e4b --salida /cache/modelos/sft-reales --epocas 2"
+    --nombre sft-reales --hub grupo11-admision-guardia/admision-gemma4-e4b --salida /cache/modelos/sft-reales --epocas 2"
 uv run modal run modal_app.py --comando "python -m entrenamiento.sft --datos /cache/datos/entrenamiento-mixto.jsonl \
-    --nombre sft-mixto --hub Pedro2204/admision-gemma4-e4b --salida /cache/modelos/sft-mixto --epocas 1"
+    --nombre sft-mixto --hub grupo11-admision-guardia/admision-gemma4-e4b --salida /cache/modelos/sft-mixto --epocas 1"
 ```
 
 Antes corrimos una **prueba de humo** (`humo`, 2 pasos, 37 s) para recorrer todo el circuito: carga,
@@ -520,7 +524,7 @@ Casos resueltos sobre los 50 de práctica:
 
 Las dos últimas filas son con el buscador en la GPU (Parte 5). La última es `entrega.py` tal cual, en el
 commit `59632ea`, sin ninguna variable de entorno: exactamente lo que corre la cátedra
-(`evaluacion/corridas/entrega-*`). Punto de control: `Pedro2204/admision-gemma4-e4b`, revisión
+(`evaluacion/corridas/entrega-*`). Punto de control: `grupo11-admision-guardia/admision-gemma4-e4b`, revisión
 `671cca684d39f1e78a5856ae6414e3fff20e8a06` (etiqueta `sft-mixto-final`); prompt:
 `prompt/sistema_final.txt`.
 
