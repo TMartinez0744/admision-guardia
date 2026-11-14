@@ -25,6 +25,9 @@ RUTA_PROMPT = Path(__file__).parent / "prompt" / "sistema_optimizado.txt"
 
 # Contexto maximo por conversacion. Si una conversacion lo supera, vLLM falla.
 MAX_CONTEXTO = 32768
+# Fracción de la GPU para vLLM (pesos + caché). El resto queda para el buscador,
+# que corre bge-m3 en la misma GPU (unos 2 GB).
+MEMORIA_VLLM = 0.85
 # Tokens maximos por respuesta del modelo: una llamada a herramienta en JSON.
 MAX_RESPUESTA = 512
 
@@ -99,7 +102,8 @@ def cargar_modelo():
     # Para comparar puntos de control sin editar este archivo; la cátedra corre con los fijados arriba.
     modelo = os.environ.get("ADMISION_MODELO", MODELO_HF)
     revision = os.environ.get("ADMISION_REVISION", REVISION_HF)
-    return LLM(model=modelo, revision=revision, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0)
+    return LLM(model=modelo, revision=revision, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0,
+               gpu_memory_utilization=MEMORIA_VLLM)
 
 
 def modelo_lote_de(llm, max_tokens: int = MAX_RESPUESTA):
