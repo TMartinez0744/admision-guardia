@@ -107,16 +107,19 @@ versión, búsquedas, contexto y segundos por caso. Las corridas de cada número
 | `prompt/sistema_optimizado.txt` | `uv run python -m prompt.optimizar --kit <kit> --salida corridas/gepa` | semilla 0, 60 + 40 casos generados, 600 casos jugados |
 | `datos/entrenamiento-reales.jsonl` | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_optimizado.txt --salida datos/entrenamiento-reales.jsonl` | semilla 0, 1600 reales |
 | `datos/entrenamiento-mixto.jsonl` | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_optimizado.txt --sinteticas 1600 --salida datos/entrenamiento-mixto.jsonl` | semilla 0, 1600 reales + 1600 sintéticas |
-| cada entrenamiento | `entrenamiento/sft.py` (ver abajo) | configuración, semilla y revisiones en W&B y en `evaluacion/corridas/<nombre>/resumen.json` |
+| `prompt/sistema_final.txt` | `prompt/sistema_optimizado.txt` con la regla de `aviso_al_voluntariado` reemplazada por la costumbre (a mano, ver INFORME, Parte 4) | — |
+| `datos/entrenamiento-mixto-final.jsonl` (el del modelo final) | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_final.txt --sinteticas 1600 --salida datos/entrenamiento-mixto-final.jsonl` | semilla 0, 1600 reales + 1600 sintéticas |
+| `datos/entrenamiento-mixto-catedra.jsonl` | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_catedra.txt --sinteticas 1600 --salida datos/entrenamiento-mixto-catedra.jsonl` | semilla 0, 1600 reales + 1600 sintéticas |
+| cada entrenamiento | `entrenamiento/sft.py` (ver abajo) | configuración, semilla y revisiones en W&B y en `evaluacion/entrenamientos/<corrida>/resumen.json` |
 
 Volver a entrenar (no hace falta para verificar nada de lo de arriba: los puntos de control están
 publicados). Necesita `HF_TOKEN` y `WANDB_API_KEY` en `.env`; los datos se suben antes al volumen de
 Modal:
 
 ```bash
-uv run modal volume put admision-cache datos/entrenamiento-mixto.jsonl /datos/entrenamiento-mixto.jsonl
-uv run modal run modal_app.py --comando "python -m entrenamiento.sft --datos /cache/datos/entrenamiento-mixto.jsonl \
-    --nombre sft-mixto --hub <usuario>/admision-gemma4-e4b --salida /cache/modelos/sft-mixto --epocas 1"
+uv run modal volume put admision-cache datos/entrenamiento-mixto-final.jsonl /datos/entrenamiento-mixto-final.jsonl
+uv run modal run modal_app.py --comando "python -m entrenamiento.sft --datos /cache/datos/entrenamiento-mixto-final.jsonl \
+    --nombre sft-mixto-final --hub <usuario>/admision-gemma4-e4b --salida /cache/modelos/sft-mixto-final --epocas 1"
 ```
 
 La semilla (0) y el resto de la configuración son los valores por defecto de `entrenamiento/sft.py`;
