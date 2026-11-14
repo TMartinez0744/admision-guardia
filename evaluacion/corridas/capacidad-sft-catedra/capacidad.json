@@ -1,0 +1,43 @@
+{
+  "modelo": "Pedro2204/admision-gemma4-e4b",
+  "revision": "d1d5a2245b0bc715f9a7971fe9763cd5aa7ec20d",
+  "prompt": "prompt/sistema_catedra.txt",
+  "segundos_carga_agente": 283.0,
+  "lotes": [
+    {
+      "casos": 25,
+      "segundos": 40.6,
+      "segundos_por_caso": 1.625,
+      "casos_por_segundo": 0.62,
+      "resueltos": 21
+    },
+    {
+      "casos": 50,
+      "segundos": 71.3,
+      "segundos_por_caso": 1.426,
+      "casos_por_segundo": 0.7,
+      "resueltos": 44
+    },
+    {
+      "casos": 100,
+      "segundos": 128.7,
+      "segundos_por_caso": 1.287,
+      "casos_por_segundo": 0.78,
+      "resueltos": 93
+    },
+    {
+      "casos": 200,
+      "segundos": 249.3,
+      "segundos_por_caso": 1.246,
+      "casos_por_segundo": 0.8,
+      "resueltos": 186
+    },
+    {
+      "casos": 400,
+      "segundos": 481.2,
+      "segundos_por_caso": 1.203,
+      "casos_por_segundo": 0.83,
+      "resueltos": 367
+    }
+  ]
+}
