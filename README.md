@@ -20,6 +20,20 @@ Integrantes:
 - Pedro Del Aguila — pdelaguila@mail.austral.edu.ar — `pedrodelaguila`
 - Trinidad Martinez — tmartinez1@mail.austral.edu.ar — `TMartinez0744`
 
+### Contribuciones
+
+Cada parte la encabezó un integrante, y las decisiones se discutieron en grupo:
+
+| Parte | Responsable | Qué incluye |
+|---|---|---|
+| 1. Curado e ingeniería de datos | Trinidad Martinez | Reglas de las normas, clasificación del historial, costumbres y primeras conversaciones de entrenamiento |
+| 2. Buscador (RAG) | Celina Arias Duval | BM25 por párrafo, comparación de embeddings y del híbrido, elección de bge-m3 con `k = 3` |
+| 3. Optimización de prompt | Elias Ballesteros | Etiquetado de casos generados, GEPA con Gemma como reflector y comparación de prompts |
+| 4. Entrenamiento | Pedro Del Aguila | Datos reales y sintéticos, SFT con LoRA, corridas y elección del modelo final |
+| 5. Recursos y producción | Pedro Del Aguila | Infraestructura en Modal, buscador en GPU, prueba de capacidad y proyección |
+
+Los commits de la Parte 1 los subió Trinidad; los de las Partes 2 a 5, Pedro.
+
 Todo lo de abajo se sigue **con el punto de control publicado, sin necesidad de volver a entrenar**.
 
 ## 1. Entorno
