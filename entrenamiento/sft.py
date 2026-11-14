@@ -101,6 +101,10 @@ def main() -> None:
                              repo_type="dataset", commit_message=f"{a.nombre}: {a.datos.name} (sha256 {huella[:12]})")
     revision_datos = subida.oid
 
+    # Trainer sube los puntos de control a hub_revision, pero no crea esa rama: sin esto no se suben.
+    api.create_repo(a.hub, private=True, exist_ok=True)
+    api.create_branch(a.hub, branch=f"{a.nombre}-checkpoints", exist_ok=True)
+
     configuracion = SFTConfig(
         output_dir=str(a.salida),
         run_name=a.nombre,
