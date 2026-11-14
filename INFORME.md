@@ -732,17 +732,17 @@ Cada número del informe se puede seguir hasta los datos y el código que lo pro
 
 ```mermaid
 flowchart TB
-    hist["historial.csv + trazas.jsonl<br/>(kit)"] -->|curado.clasificar| clas["historial_clasificado.csv"]
-    clas -->|entrenamiento.datos| datos["datos/*.jsonl<br/>(HF datasets, sha256)"]
-    gen["admision.generador<br/>+ normas sorteadas"] -->|entrenamiento.datos| datos
-    gepa["prompt.optimizar<br/>(gepa2)"] -->|prompt.archivos| prompt["prompt/sistema_*.txt"]
+    hist["Historial<br/>del kit"] -->|curado.clasificar| clas["Historial<br/>clasificado"]
+    gen["Generador<br/>de casos"] -->|normas<br/>sorteadas| datos
+    clas -->|entrenamiento.datos| datos["Datos de<br/>entrenamiento<br/>(HF + sha256)"]
+    gepa["GEPA<br/>(gepa2)"] -->|prompt.archivos| prompt["Prompt<br/>final"]
     prompt --> datos
-    datos -->|entrenamiento.sft| modelo["modelo fusionado<br/>(HF, etiqueta = corrida)"]
-    datos -.->|W&B: config, semilla, pérdida| wandb["W&B"]
-    modelo --> entrega["entrega.py<br/>(modelo + revisión + prompt)"]
+    datos -->|entrenamiento.sft| modelo["Modelo<br/>fusionado<br/>(HF + etiqueta)"]
+    datos -.->|config, semilla,<br/>pérdida| wandb["W&B"]
+    modelo --> entrega["entrega.py"]
     prompt --> entrega
-    entrega -->|admision.correr| corridas["evaluacion/corridas/<br/>(trazas, resultados)"]
-    corridas -->|evaluacion.tabla / graficos| informe["INFORME.md"]
+    entrega -->|admision.correr| corridas["Corridas<br/>(trazas y<br/>resultados)"]
+    corridas -->|evaluacion.tabla<br/>y graficos| informe["INFORME"]
 ```
 
 | Entrenamiento | Datos (sha256) | Datos en HF | Conversaciones | Épocas | Modelo en HF | W&B | Evaluado en |
