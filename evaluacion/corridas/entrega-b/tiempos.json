@@ -1,0 +1,8 @@
+{
+  "casos": 50,
+  "construir_buscador": 5.64,
+  "construir_agente": 121.119,
+  "error": null,
+  "jugar_lote": 22.404,
+  "jugar_lote_por_caso": 0.448
+}

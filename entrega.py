@@ -15,16 +15,20 @@ from buscador.hibrido import BuscadorHibrido
 
 # El modelo se baja de este repositorio, con HF_TOKEN tomado del entorno.
 # La revision es el commit o la etiqueta exacta del punto de control final.
-# Linea de base: Gemma 4 E4B sin entrenar, fijado al commit de Hugging Face.
-# Cuando haya un modelo entrenado, va acá el repositorio del grupo.
-MODELO_HF = "google/gemma-4-E4B-it"
-REVISION_HF = "4ecc2ba63bcac23ba4a767fc87025b1450f84c9c"
+# Punto de control final: Gemma 4 E4B con SFT (LoRA fusionado), corrida
+# sft-mixto-final (ver INFORME, Parte 4). Repositorio privado: hace falta HF_TOKEN.
+MODELO_HF = "Pedro2204/admision-gemma4-e4b"
+REVISION_HF = "671cca684d39f1e78a5856ae6414e3fff20e8a06"
 
-# Mensaje de sistema: el que eligió la optimización de prompt (Parte 3).
-RUTA_PROMPT = Path(__file__).parent / "prompt" / "sistema_optimizado.txt"
+# Mensaje de sistema: el optimizado por GEPA (Parte 3) con la regla del voluntariado
+# corregida (Parte 4). Es el mismo con el que se entrenó el punto de control final.
+RUTA_PROMPT = Path(__file__).parent / "prompt" / "sistema_final.txt"
 
 # Contexto maximo por conversacion. Si una conversacion lo supera, vLLM falla.
 MAX_CONTEXTO = 32768
+# Fracción de la GPU para vLLM (pesos + caché). El resto queda para el buscador,
+# que corre bge-m3 en la misma GPU (unos 2 GB).
+MEMORIA_VLLM = 0.85
 # Tokens maximos por respuesta del modelo: una llamada a herramienta en JSON.
 MAX_RESPUESTA = 512
 
@@ -96,7 +100,11 @@ def cargar_modelo():
     os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
     from vllm import LLM
 
-    return LLM(model=MODELO_HF, revision=REVISION_HF, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0)
+    # Para comparar puntos de control sin editar este archivo; la cátedra corre con los fijados arriba.
+    modelo = os.environ.get("ADMISION_MODELO", MODELO_HF)
+    revision = os.environ.get("ADMISION_REVISION", REVISION_HF)
+    return LLM(model=modelo, revision=revision, dtype="bfloat16", max_model_len=MAX_CONTEXTO, seed=0,
+               gpu_memory_utilization=MEMORIA_VLLM)
 
 
 def modelo_lote_de(llm, max_tokens: int = MAX_RESPUESTA):
