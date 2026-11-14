@@ -4,9 +4,14 @@ Trabajo final — Inteligencia Artificial Generativa — Universidad Austral —
 
 | | |
 |---|---|
-| Modelo en Hugging Face | `<link>` — revisión del punto de control final: `<revisión>` |
-| Proyecto de W&B | `<link>` |
-| Presentación en Loom | `<link>` |
+| Modelo en Hugging Face | [Pedro2204/admision-gemma4-e4b](https://huggingface.co/Pedro2204/admision-gemma4-e4b) (privado) — revisión del punto de control final: `671cca684d39f1e78a5856ae6414e3fff20e8a06` (etiqueta `sft-mixto-final`) |
+| Datos de entrenamiento | [Pedro2204/admision-gemma4-e4b-datos](https://huggingface.co/datasets/Pedro2204/admision-gemma4-e4b-datos) (privado) |
+| Proyecto de W&B | [pdelaguila-universidad-austral/admision-guardia](https://forge.coreweave.com/wandb/pdelaguila-universidad-austral/admision-guardia) |
+| Presentación en Loom | pendiente |
+
+**Resultado del modelo final** sobre los 50 casos de práctica: **49, 50 y 50** con las normas
+original, b y c (referencia de la cátedra con SFT: 25, 24, 25), a 0,44 s y USD 0,00026 por caso en
+una A100 de 40 GB. Detalle en `INFORME.md`.
 
 Integrantes:
 
@@ -100,9 +105,26 @@ versión, búsquedas, contexto y segundos por caso. Las corridas de cada número
 | `historial_clasificado.csv` | `uv run python -m curado.clasificar` | sin aleatoriedad |
 | `datos/conversaciones.jsonl` | `uv run python -m curado.conversaciones` | sin aleatoriedad |
 | `prompt/sistema_optimizado.txt` | `uv run python -m prompt.optimizar --kit <kit> --salida corridas/gepa` | semilla 0, 60 + 40 casos generados, 600 casos jugados |
-| cada entrenamiento | `<TODO>` | `<TODO>` |
+| `datos/entrenamiento-reales.jsonl` | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_optimizado.txt --salida datos/entrenamiento-reales.jsonl` | semilla 0, 1600 reales |
+| `datos/entrenamiento-mixto.jsonl` | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_optimizado.txt --sinteticas 1600 --salida datos/entrenamiento-mixto.jsonl` | semilla 0, 1600 reales + 1600 sintéticas |
+| `prompt/sistema_final.txt` | `prompt/sistema_optimizado.txt` con la regla de `aviso_al_voluntariado` reemplazada por la costumbre (a mano, ver INFORME, Parte 4) | — |
+| `datos/entrenamiento-mixto-final.jsonl` (el del modelo final) | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_final.txt --sinteticas 1600 --salida datos/entrenamiento-mixto-final.jsonl` | semilla 0, 1600 reales + 1600 sintéticas |
+| `datos/entrenamiento-mixto-catedra.jsonl` | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_catedra.txt --sinteticas 1600 --salida datos/entrenamiento-mixto-catedra.jsonl` | semilla 0, 1600 reales + 1600 sintéticas |
+| cada entrenamiento | `entrenamiento/sft.py` (ver abajo) | configuración, semilla y revisiones en W&B y en `evaluacion/entrenamientos/<corrida>/resumen.json` |
 
-Volver a entrenar: `<TODO: comando>`. No hace falta para verificar nada de lo de arriba.
+Volver a entrenar (no hace falta para verificar nada de lo de arriba: los puntos de control están
+publicados). Necesita `HF_TOKEN` y `WANDB_API_KEY` en `.env`; los datos se suben antes al volumen de
+Modal:
+
+```bash
+uv run modal volume put admision-cache datos/entrenamiento-mixto-final.jsonl /datos/entrenamiento-mixto-final.jsonl
+uv run modal run modal_app.py --comando "python -m entrenamiento.sft --datos /cache/datos/entrenamiento-mixto-final.jsonl \
+    --nombre sft-mixto-final --hub <usuario>/admision-gemma4-e4b --salida /cache/modelos/sft-mixto-final --epocas 1"
+```
+
+La semilla (0) y el resto de la configuración son los valores por defecto de `entrenamiento/sft.py`;
+cada corrida deja en W&B y en `resumen.json` la configuración completa, el sha256 y la revisión de
+Hugging Face de los datos, y la revisión del modelo fusionado.
 
 ## 6. Diagrama
 

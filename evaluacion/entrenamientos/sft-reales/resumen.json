@@ -1,0 +1,21 @@
+{
+  "nombre": "sft-reales",
+  "hub": "Pedro2204/admision-gemma4-e4b",
+  "revision": "988eeea44ce0a309907d3ab23758a01f28d981d0",
+  "etiqueta": "sft-reales",
+  "datos": "/cache/datos/entrenamiento-reales.jsonl",
+  "datos_sha256": "b2c2c9dd0d0977e6f254b4aee62d122648fa7ef185383f138b49c23aafae68fb",
+  "datos_hub": "Pedro2204/admision-gemma4-e4b-datos",
+  "datos_revision": "9552900a53912ac8258aae4a69ce2005008c070a",
+  "conversaciones": 1600,
+  "semilla": 0,
+  "epocas": 2.0,
+  "tasa": 0.0001,
+  "rango_lora": 16,
+  "lote": 8,
+  "parametros_entrenables": 34881536,
+  "segundos": 6170.2,
+  "perdida_final": 0.018,
+  "vram_pico_gb": 17.67,
+  "wandb": "https://forge.coreweave.com/wandb/pdelaguila-universidad-austral/admision-guardia/runs/oq6m4l4t"
+}

@@ -9,14 +9,18 @@ rankings con Reciprocal Rank Fusion, que no necesita calibrar puntajes.
 Los chunks son los mismos del BM25: un párrafo con el encabezado de su sección y
 la línea de valores de los parámetros que cita, armados con la carpeta recibida.
 
-El modelo de embeddings corre en CPU: es chico, el corpus tiene ~100 chunks y así
-no le quita VRAM al modelo del agente en la A100.
+El modelo de embeddings corre en la GPU si hay una. En la CPU de Modal, con un
+solo hilo, bge-m3 tarda unos 224 ms por consulta; en la A100, 14 ms. Como el
+entorno llama al buscador de a una consulta, en CPU el buscador era más de la
+mitad del tiempo de cada caso. Ocupa unos 2 GB de la GPU: entrega.py le deja
+ese lugar al limitar la memoria de vLLM.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
+import torch
 from sentence_transformers import SentenceTransformer
 
 from buscador.bm25 import BuscadorBM25, normalizar
@@ -33,6 +37,17 @@ MODELOS = {
 }
 
 
+_CARGADOS: dict[tuple[str, str], SentenceTransformer] = {}
+
+
+def _cargar(nombre: str, revision: str) -> SentenceTransformer:
+    """Una sola copia de cada modelo por proceso: varios buscadores (uno por versión de normas) la comparten."""
+    if (nombre, revision) not in _CARGADOS:
+        dispositivo = "cuda" if torch.cuda.is_available() else "cpu"
+        _CARGADOS[nombre, revision] = SentenceTransformer(nombre, revision=revision, device=dispositivo)
+    return _CARGADOS[nombre, revision]
+
+
 class BuscadorHibrido:
     def __init__(self, ruta_normas: Path, modelo: str = "e5-small", modo: str = "hibrido", k_entorno: int = 2):
         """``modo`` es ``hibrido``, ``denso`` (solo embeddings) o ``bm25``."""
@@ -41,7 +56,7 @@ class BuscadorHibrido:
         self.bm25 = BuscadorBM25(Path(ruta_normas))
         self.chunks = self.bm25.chunks
         nombre, revision, self.prefijo_consulta, prefijo_pasaje = MODELOS[modelo]
-        self.modelo = SentenceTransformer(nombre, revision=revision, device="cpu")
+        self.modelo = _cargar(nombre, revision)
         self.vectores = self.modelo.encode([prefijo_pasaje + c.texto for c in self.chunks], normalize_embeddings=True)
 
     def ranking_bm25(self, consulta: str) -> list[int]:
