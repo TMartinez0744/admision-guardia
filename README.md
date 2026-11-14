@@ -153,6 +153,8 @@ Qué código, qué punto de control y qué prompt usó cada corrida de evaluaci�
 | `evaluacion/corridas/<corrida>-<versión>/` | `admision.correr practica` (sección 4); la fila del informe, `uv run python -m evaluacion.tabla` | greedy (temperatura 0) |
 | `evaluacion/corridas/capacidad-*/` | `uv run python -m evaluacion.capacidad --kit <kit> --salida ...` | casos generados con semilla 1 |
 | `evaluacion/entrenamientos/<corrida>/resumen.json` | lo escribe `entrenamiento/sft.py` al terminar | semilla 0 |
+| `evaluacion/entrenamientos/<corrida>/perdida.json` | `uv run python -m evaluacion.historia_wandb` (baja la curva de W&B; necesita `WANDB_API_KEY`) | — |
+| `informe/figuras/*.png` (gráficos del INFORME) | `uv run python -m evaluacion.graficos` (solo lee archivos del repo) | sin aleatoriedad |
 | cada entrenamiento | `entrenamiento/sft.py` (ver abajo) | configuración, semilla y revisiones en W&B y en `evaluacion/entrenamientos/<corrida>/resumen.json` |
 
 Volver a entrenar (no hace falta para verificar nada de lo de arriba: los puntos de control están
