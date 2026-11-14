@@ -633,6 +633,13 @@ Todo corrió en una **A100 de 40 GB de Modal** (`modal_app.py`, `gpu="A100-40GB"
 Los tiempos y la VRAM salen de `evaluacion/entrenamientos/<corrida>/resumen.json`; el costo es
 tiempo × precio, sin contar la carga del modelo y la subida a Hugging Face.
 
+![Recursos de cada entrenamiento](informe/figuras/recursos.png)
+
+Los cuatro entrenamientos usan entre 17,1 y 17,8 GB de los 40 GB de la A100: **la VRAM nunca fue la
+restricción**. Lo que mueve el tiempo y el costo es el largo de cada conversación: con el prompt de
+la cátedra (615 tokens) el entrenamiento tarda 62 minutos, y con el optimizado o el corregido (unos
+1.900 tokens), alrededor de 100, porque el prompt se repite en cada una de las 3.200 conversaciones.
+
 - **VRAM:** el entrenamiento usa menos de la mitad de la GPU (17,8 GB de 40). LoRA de rango 16 sobre
   el modelo en bf16, con gradient checkpointing y una conversación por pasada.
 - **Paralelismo al entrenar: bajo.** Una conversación por pasada y 8 de acumulación, porque los logits
@@ -777,7 +784,8 @@ hasta que se llena la caché (unos 200 casos).
 
 ### Trazabilidad de los entrenamientos
 
-Cada entrenamiento con sus datos, su modelo y su corrida de W&B:
+Cada entrenamiento con sus datos, su modelo y su corrida de W&B. Lo que costó cada uno en tiempo,
+dinero y VRAM está en el gráfico de recursos de la Parte 5.
 
 | Entrenamiento | Datos (sha256) | Datos en HF | Conversaciones | Épocas | Modelo en HF | W&B | Evaluado en |
 |---|---|---|---|---|---|---|---|
