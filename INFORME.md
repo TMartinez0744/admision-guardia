@@ -731,7 +731,7 @@ hasta que se llena la caché (unos 200 casos).
 Cada número del informe se puede seguir hasta los datos y el código que lo produjeron:
 
 ```mermaid
-flowchart LR
+flowchart TB
     hist["historial.csv + trazas.jsonl<br/>(kit)"] -->|curado.clasificar| clas["historial_clasificado.csv"]
     clas -->|entrenamiento.datos| datos["datos/*.jsonl<br/>(HF datasets, sha256)"]
     gen["admision.generador<br/>+ normas sorteadas"] -->|entrenamiento.datos| datos
