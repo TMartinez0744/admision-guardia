@@ -4,9 +4,14 @@ Trabajo final — Inteligencia Artificial Generativa — Universidad Austral —
 
 | | |
 |---|---|
-| Modelo en Hugging Face | `<link>` — revisión del punto de control final: `<revisión>` |
-| Proyecto de W&B | `<link>` |
-| Presentación en Loom | `<link>` |
+| Modelo en Hugging Face | [Pedro2204/admision-gemma4-e4b](https://huggingface.co/Pedro2204/admision-gemma4-e4b) (privado) — revisión del punto de control final: `671cca684d39f1e78a5856ae6414e3fff20e8a06` (etiqueta `sft-mixto-final`) |
+| Datos de entrenamiento | [Pedro2204/admision-gemma4-e4b-datos](https://huggingface.co/datasets/Pedro2204/admision-gemma4-e4b-datos) (privado) |
+| Proyecto de W&B | [pdelaguila-universidad-austral/admision-guardia](https://forge.coreweave.com/wandb/pdelaguila-universidad-austral/admision-guardia) |
+| Presentación en Loom | pendiente |
+
+**Resultado del modelo final** sobre los 50 casos de práctica: **49, 50 y 50** con las normas
+original, b y c (referencia de la cátedra con SFT: 25, 24, 25), a 0,44 s y USD 0,00026 por caso en
+una A100 de 40 GB. Detalle en `INFORME.md`.
 
 Integrantes:
 
