@@ -633,7 +633,7 @@ Todo corrió en una **A100 de 40 GB de Modal** (`modal_app.py`, `gpu="A100-40GB"
 Los tiempos y la VRAM salen de `evaluacion/entrenamientos/<corrida>/resumen.json`; el costo es
 tiempo × precio, sin contar la carga del modelo y la subida a Hugging Face.
 
-![Recursos de cada entrenamiento](informe/figuras/recursos.png)
+![Recursos de cada entrenamiento](informe/figuras/recursos-entrenamientos.png)
 
 Los cuatro entrenamientos usan entre 17,1 y 17,8 GB de los 40 GB de la A100: **la VRAM nunca fue la
 restricción**. Lo que mueve el tiempo y el costo es el largo de cada conversación: con el prompt de
@@ -764,7 +764,7 @@ secreto. El modelo sin entrenar es irregular (11, 5, 5); el final no (49, 50, 50
 
 ### Entrenamiento y sobreajuste
 
-![Curvas de pérdida](informe/figuras/perdida.png)
+![Curvas de pérdida](informe/figuras/perdida-entrenamientos.png)
 
 Las cuatro curvas caen de 0,5 a menos de 0,01 en unos 100 pasos: el oficio es muy regular (14
 consultas, un orden de pasos estable) y el modelo lo aprende rápido. La curva más baja es la de
