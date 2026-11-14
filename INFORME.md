@@ -39,6 +39,55 @@ ningún error en las 2000 filas.
 
 El ruido, por campo: `aviso_al_voluntariado` 151 y `entidad_verificada` 9.
 
+![Clasificación del historial](informe/figuras/clasificacion.png)
+
+### Un ejemplo de cada tipo
+
+Tres admisiones reales del historial, las tres por **dolor torácico** con las normas originales
+(edad para el box: 67 años; plazo del ECG: 10 minutos, 5 menos si llega en ambulancia; dígito
+reservado: 7). El motivo de cada clasificación es el que da `curado/clasificar.py`.
+
+> [!TIP]
+> **🟢 Correcta: `H-0008`** (operador OP-02)
+>
+> Paciente de **68 años**, nivel 2, dolor torácico, llegó por sus propios medios, **sin documento**,
+> con credencial de **Obra Social Tilcara**, acompañada por su hermana.
+>
+> | Lo que registró | Por qué está bien |
+> |---|---|
+> | registro **provisorio** | no presentó documento (NOR-ADM-01) |
+> | box antes del registro: **sí** | 68 ≥ 67 años (NOR-ADM-02) |
+> | circuito **ECG, 10 min** | dolor torácico y no llegó en ambulancia (NOR-TDE-01) |
+> | verificó Obra Social Tilcara → **inactiva** | se verifica la credencial presentada (NOR-COB-02) |
+> | cobertura **sin cobertura**, no notifica | afiliación inactiva (NOR-COB-03) |
+> | voluntariado: **no** | tiene acompañante (costumbre 1) |
+>
+> Sigue todas las normas y hace lo que hacen casi todos los operadores. **Entra al entrenamiento.**
+
+> [!WARNING]
+> **🟡 Ruido: `H-0005`** (operador OP-04)
+>
+> Paciente de **35 años**, dolor torácico, sin acompañante, que **se lesionó en el trayecto al
+> trabajo**. El operador verificó la ART (Pampa Laboral ART), registró cobertura `art` y el ECG a 10
+> minutos: todo lo que fijan las normas está bien.
+>
+> Pero **avisó al voluntariado**. Ninguna norma habla del voluntariado, así que no viola nada; se
+> **aparta de la costumbre**: 17 de los 20 operadores avisan solo con 75 años o más y sin acompañante.
+> OP-04 es uno de los tres operadores que avisan fuera de esa situación.
+>
+> No entra al entrenamiento: enseñaría a ignorar la costumbre.
+
+> [!CAUTION]
+> **🔴 Error: `H-0010`** (operador OP-11)
+>
+> Paciente de 37 años, dolor torácico, **llegó en ambulancia**, con obra social y prepaga.
+>
+> Registró el ECG a **10 minutos**, pero la NOR-TDE-04 §1 dice que si llega en ambulancia el plazo
+> es el del circuito **menos 5 minutos**: correspondían **5**. Viola una norma escrita.
+>
+> Es el error más común del historial (97 de las 240 filas con error). No entra al entrenamiento:
+> enseñaría a violar la norma.
+
 ### Cómo encontramos las costumbres
 
 El detalle y la evidencia están en `costumbres.md`. Son dos: el aviso al voluntariado a partir de
@@ -726,24 +775,9 @@ de a uno. Encontrarlo nos llevó a mirar dónde se iba el tiempo y no solo cuán
 buscador en la GPU, la curva hace lo que se espera de vLLM: más casos a la vez, menos tiempo por caso,
 hasta que se llena la caché (unos 200 casos).
 
-### Mapa de trazabilidad
+### Trazabilidad de los entrenamientos
 
-Cada número del informe se puede seguir hasta los datos y el código que lo produjeron:
-
-```mermaid
-flowchart TB
-    hist["Historial<br/>del kit"] -->|curado.clasificar| clas["Historial<br/>clasificado"]
-    gen["Generador<br/>de casos"] -->|normas<br/>sorteadas| datos
-    clas -->|entrenamiento.datos| datos["Datos de<br/>entrenamiento<br/>(HF + sha256)"]
-    gepa["GEPA<br/>(gepa2)"] -->|prompt.archivos| prompt["Prompt<br/>final"]
-    prompt --> datos
-    datos -->|entrenamiento.sft| modelo["Modelo<br/>fusionado<br/>(HF + etiqueta)"]
-    datos -.->|config, semilla,<br/>pérdida| wandb["W&B"]
-    modelo --> entrega["entrega.py"]
-    prompt --> entrega
-    entrega -->|admision.correr| corridas["Corridas<br/>(trazas y<br/>resultados)"]
-    corridas -->|evaluacion.tabla<br/>y graficos| informe["INFORME"]
-```
+Cada entrenamiento con sus datos, su modelo y su corrida de W&B:
 
 | Entrenamiento | Datos (sha256) | Datos en HF | Conversaciones | Épocas | Modelo en HF | W&B | Evaluado en |
 |---|---|---|---|---|---|---|---|
