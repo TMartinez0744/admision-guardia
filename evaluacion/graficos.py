@@ -45,6 +45,7 @@ CORRECTA, RUIDO, ERROR = "#0ca30c", "#fab219", "#d03b3b"
 # Rampa secuencial para el mapa de calor.
 AZULES = ["#e7f0fc", "#b7d3f6", "#86b6ef", "#5598e7", "#2a78d6", "#1c5cab", "#104281"]
 
+PRECIO_A100_SEGUNDO = 0.000583  # A100 de 40 GB en Modal (modal.com/pricing)
 REF_SIN_ENTRENAR = (12, 15, 12)  # mission.md
 REF_SFT = (25, 24, 25)
 
@@ -246,6 +247,39 @@ def capacidad() -> None:
     guardar(fig, "capacidad.png")
 
 
+def recursos() -> None:
+    """Tiempo, costo y VRAM de cada entrenamiento en la A100 de 40 GB."""
+    corridas = [("sft-reales", "Solo reales, 2 épocas", APARTE),
+                ("sft-mixto", "Reales + sintéticas, prompt de GEPA", SIN_ENTRENAR),
+                ("sft-mixto-catedra", "Reales + sintéticas, prompt de la cátedra", ENTRENADO),
+                ("sft-mixto-final", "Reales + sintéticas, prompt corregido (final)", FINAL)]
+    datos = [json.loads((ENTRENAMIENTOS / n / "resumen.json").read_text(encoding="utf-8")) for n, _, _ in corridas]
+    paneles = [("Tiempo (minutos)", [d["segundos"] / 60 for d in datos], 120, "{:.0f} min"),
+               ("Costo de GPU (USD)", [d["segundos"] * PRECIO_A100_SEGUNDO for d in datos], 4.5, "USD {:.2f}"),
+               ("Pico de VRAM (GB)", [d["vram_pico_gb"] for d in datos], 40, "{:.1f} GB")]
+    fig, ejes = figura("Cada entrenamiento usa menos de la mitad de la GPU y cuesta menos de USD 4",
+                       "Recursos de cada entrenamiento con LoRA en una A100 de 40 GB de Modal",
+                       "evaluacion/entrenamientos/*/resumen.json; costo = tiempo × USD 0,000583 por segundo",
+                       ncols=3, alto=3.2, izquierda=0.3, abajo=34, arriba=22)
+    y = list(range(len(corridas)))[::-1]
+    for ax, (titulo, valores, tope, formato) in zip(ejes, paneles, strict=True):
+        for yi, v, (_, _, color) in zip(y, valores, corridas, strict=True):
+            if titulo.startswith("Pico de VRAM"):  # la GPU entera de fondo, para ver qué parte se usa
+                ax.barh(yi, 40, color=GRILLA, height=0.66, edgecolor=SUPERFICIE, linewidth=2)
+            ax.barh(yi, v, color=color, height=0.66, edgecolor=SUPERFICIE, linewidth=2)
+            ax.text(v + tope * 0.03, yi, formato.format(v).replace(".", ","), va="center", fontsize=8.5,
+                    color=TINTA, fontweight="bold" if color == FINAL else "normal")
+        ax.set_title(titulo, fontsize=10.5, color=TINTA, loc="left", fontweight="bold")
+        ax.set_xlim(0, tope * 1.32)
+        ax.set_xticks([])
+        ax.grid(False)
+        ax.spines["bottom"].set_visible(False)
+    ejes[2].text(40, -0.62, "40 GB", color=TINTA_3, fontsize=8, ha="right", va="top")
+    ejes[0].set_ylim(-0.95, len(corridas) - 0.45)
+    ejes[0].set_yticks(y, [c[1] for c in corridas])
+    guardar(fig, "recursos.png")
+
+
 def main() -> None:
     estilo()
     clasificacion()
@@ -254,6 +288,7 @@ def main() -> None:
     perdida()
     controles()
     capacidad()
+    recursos()
 
 
 if __name__ == "__main__":
