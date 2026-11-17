@@ -15,8 +15,9 @@ valores de los parámetros se leen de la carpeta de normas que se recibe, nunca 
 
 Con esas reglas se deriva la ficha que corresponde a cada fila y se compara contra la registrada,
 campo por campo. Una diferencia en cualquiera de los siete campos que las normas determinan es un
-**error**. El octavo campo, `aviso_al_voluntariado`, no lo cubre ninguna norma, así que se compara
-contra la costumbre; apartarse de ella es **ruido**. Lo que no cae en ninguna de las dos es
+**error**. Dos decisiones no las fija ninguna norma —el octavo campo, `aviso_al_voluntariado`, y qué
+credencial se verifica cuando hay más de una (`entidad_verificada`)—, así que se comparan contra las
+costumbres; apartarse de ellas es **ruido**. Lo que no cae en ninguna de las dos es
 **correcta**.
 
 Lo produce `curado/clasificar.py`:
@@ -95,12 +96,12 @@ los 75 años sin acompañante, y la elección de la prepaga cuando el paciente p
 credenciales.
 
 El hallazgo que las destrabó fue mirar el comportamiento **por operador**. En el agregado, el
-aviso al voluntariado parecía casi aleatorio: 17% de las filas, sin ninguna condición que lo
-explicara por encima del 60%. Separando por operador aparece el corte: 17 de los 20 avisan
+aviso al voluntariado parecía casi aleatorio: 17% de las filas, y ninguna condición simple (edad,
+acompañante, nivel) lo predecía en más del 60% de los casos. Separando por operador aparece el corte: 17 de los 20 avisan
 únicamente con 75 años o más y sin acompañante, con cero excepciones en 1674 filas, mientras que
 OP-11, OP-17 y OP-04 avisan también fuera de esa situación.
 
-**Las 160 filas de ruido son exactamente las de esos tres operadores**, y ninguna de los otros 17.
+**Las 160 filas de ruido son todas de esos tres operadores**, y ninguna de los otros 17.
 
 Un desvío que al principio parecía costumbre y no lo era: el `plazo_circuito_min` con cinco
 minutos de menos. Lo fija NOR-TDE-04 §1 para los pacientes que llegan en ambulancia, así que las
@@ -283,12 +284,12 @@ Dos salvedades:
 
 **Con el agente final** (Parte 4), el mismo buscador alcanza para **149 de 150 casos** de práctica.
 El modelo hace 3,3 búsquedas por caso, unos 900 tokens de normas. El único caso que falla
-(`pev-049`, normas originales) es una búsqueda que no trajo arriba el párrafo de NOR-ADM-02 con la
-edad del box. Abajo, la primera medición: con el modelo sin entrenar.
+(`pev-049`, normas originales) no es del buscador: la búsqueda trajo NOR-ADM-02 §1 con la edad del
+box, pero el modelo no la aplicó (ver Parte 4). Abajo, la primera medición: con el modelo sin entrenar.
 
 Línea base: Gemma 4 E4B sin entrenar, con el agente y el mensaje de sistema de ejemplo de la
 cátedra, y nuestro buscador (bge-m3, `k = 3`), sobre los 50 casos de práctica. Corrió en una A100
-de 40 GB de Modal (`modal_app.py`), en el commit `5d369fd`:
+de 40 GB de Modal (`modal_app.py`), en el commit `5c856df`:
 
 ```bash
 uv run modal run modal_app.py --comando "python -m admision.correr practica --entrega entrega.py \
@@ -327,8 +328,8 @@ Lo que leemos:
   las tres. Con cada control alrededor del 80%, acertar los nueve juntos es poco probable y unos
   pocos campos mueven mucho el total: la diferencia entre 11 y 5 es sobre todo varianza de un
   modelo poco confiable.
-- **El modelo no está usando los números de las normas originales.** De los 70 campos que falla
-  con las normas b, solo 12 coinciden con lo que correspondería con las originales.
+- **El modelo no está usando los números de las normas originales.** De los 71 campos de la ficha
+  que falla con las normas b (sin contar el aviso ni la verificación), solo 12 coinciden con lo que correspondería con las originales.
 - **Busca poco:** 1,28 búsquedas por caso y 4,9 llamadas en total, así que muchas fichas se deciden
   sin leer la norma que corresponde. El prompt (Parte 3) y el entrenamiento (Parte 4) apuntan a eso.
 - **`aviso_al_voluntariado` queda en 0,72 en las tres versiones:** es una costumbre que no está
@@ -422,8 +423,9 @@ Lo que observamos:
 
 Con el modelo **sin entrenar**, sobre los 50 casos de práctica y las tres versiones de normas.
 Cada fila sale de `uv run python -m evaluacion.tabla evaluacion/corridas/<corrida>`, con el prompt
-que indica (`ADMISION_PROMPT`); `base` corrió en el commit `5d369fd` y `ini` y `opt`, en `2ce3280`
-(ver `evaluacion/corridas/README.md`). Los largos se miden con el tokenizador de Gemma 4:
+que indica (`ADMISION_PROMPT`); `base` corrió en el commit `5c856df` y `ini` y `opt`, en `2ce3280`
+(ver `evaluacion/corridas/README.md`). El largo del prompt se mide con el tokenizador de Gemma 4; el contexto por caso es una estimación
+(caracteres ÷ 4, como en `evaluacion.tabla`):
 
 | Prompt | Original | b | c | Total | Largo del prompt (tokens) | Tokens de contexto por caso | Segundos por caso |
 |---|---|---|---|---|---|---|---|
@@ -523,7 +525,7 @@ Casos resueltos sobre los 50 de práctica:
 | **Prompt + entrenamiento: modelo final (`sft-mixto-final`)** | **49** | **50** | **50** |
 
 Las dos últimas filas son con el buscador en la GPU (Parte 5). La última es `entrega.py` tal cual, en el
-commit `59632ea`, sin ninguna variable de entorno: exactamente lo que corre la cátedra
+commit `bf64ec4`, sin ninguna variable de entorno: exactamente lo que corre la cátedra
 (`evaluacion/corridas/entrega-*`). Punto de control: `grupo11-admision-guardia/admision-gemma4-e4b`, revisión
 `671cca684d39f1e78a5856ae6414e3fff20e8a06` (etiqueta `sft-mixto-final`); prompt:
 `prompt/sistema_final.txt`.
@@ -551,8 +553,8 @@ Los dos con el prompt optimizado de la Parte 3, evaluados con ese mismo prompt
   enseñaron a leer los valores del buscador; para un test con otros números, el mixto es el candidato.
 - **Los entrenados buscan más** (3,0 a 3,3 búsquedas por caso contra 1,3 sin entrenar), como los
   operadores del historial, y por eso usan más contexto.
-- **En el mixto todos los controles quedan en 1,00 salvo `aviso_al_voluntariado` (0,72).** Todas
-  sus fallas son los 14 casos de práctica con 75 años o más y sin acompañante, en los que nunca avisa.
+- **En el mixto todos los controles quedan en 1,00 salvo `aviso_al_voluntariado` (0,72)** y un
+  `registro` con las normas b (`pev-029`). Las demás fallas son los 14 casos de práctica con 75 años o más y sin acompañante, en los que nunca avisa.
 
 ### Lo que no funcionó: una regla equivocada del prompt de GEPA
 
@@ -588,7 +590,7 @@ avisa. Con el prompt corregido (modelo final) no falla ninguno.
 | `sft-reales` | optimizado | 40 | 31 | 36 | 107 | 15.725 |
 | `sft-mixto` | optimizado | 36 | 35 | 36 | 107 | 16.400 |
 | `sft-mixto` | final, sin reentrenar | 30 | – | – | – | – |
-| `sft-mixto-catedra` | cátedra | 42 | 45 | 42 | 129 | 8.235 |
+| `sft-mixto-catedra` (buscador en GPU, ver Reproducibilidad) | cátedra | 42 | 45 | 42 | 129 | 8.235 |
 | **`sft-mixto-final`** | **final** | **49** | **50** | **50** | **149** | 16.416 |
 
 Lo que sacamos en limpio de la Parte 4:
@@ -601,8 +603,10 @@ Lo que sacamos en limpio de la Parte 4:
   optimizado le costó al modelo entrenado 42 casos; corregirla al usarlo, sin reentrenar, lo empeoró.
 - **El único caso que falla el modelo final** es `pev-049` con las normas originales: 71 años, cuando
   la edad para ir al box antes del registro es 67. Registró `box_antes_del_registro: false`. La
-  búsqueda "registro del paciente y ubicación en el box" trajo primero NOR-ADM-01 §4; es más un
-  límite del buscador que del modelo.
+  búsqueda "registro del paciente y ubicación en el box" trajo NOR-ADM-01 §4, NOR-ADM-02 §2 y, en
+  tercer lugar, NOR-ADM-02 §1 con "P-ADM-2 = 67 años": la regla y el valor estaban en el contexto y
+  el modelo no los aplicó. Es un error del modelo, quizás inducido por el orden (la regla general
+  primero y la excepción por edad al final).
 
 ### Reproducibilidad
 
@@ -681,7 +685,7 @@ buscador tarda unos 5 s; cargar el agente, de 119 a 254 s (más la primera vez, 
 
 **La optimización que lo hizo posible: el buscador en la GPU.** La misma prueba con el modelo
 `sft-mixto-catedra` y el buscador en CPU (`evaluacion/corridas/capacidad-sft-catedra`) casi no
-escalaba: 1,63 s por caso con 25 casos y 1,20 con 400. En la máquina de Modal PyTorch usa un solo hilo
+escalaba: 1,63 s por caso con 25 casos y 1,20 con 400. En la máquina de Modal, PyTorch usa un solo hilo
 y bge-m3 tarda **224 ms por consulta en CPU contra 14 ms en la A100**; el entorno llama al buscador de a
 una consulta, y con 3,3 búsquedas por caso eran unos 0,74 s por caso solo de buscador. Pasamos bge-m3 a
 la GPU (unos 2 GB, una sola copia por proceso) y le dejamos lugar limitando vLLM al 85% de la memoria
@@ -699,11 +703,12 @@ por caso del mismo modelo baja de 1,66 s a 0,42 s.
   día cuesta unos USD 50 por día. En Modal el contenedor puede apagarse cuando no hay casos y prenderse
   con el primero, pero el arranque tarda de 2 a 4 minutos (cargar el modelo), demasiado para un
   paciente que espera. Para producción proponemos **un contenedor siempre encendido en los horarios de
-  más demanda** y apagado de noche, o un instantáneo de memoria del contenedor para arrancar en segundos.
+  más demanda** y apagado de noche, o una instantánea de memoria del contenedor para arrancar en segundos.
 - **Si sube la demanda:** primero, más casos a la vez en la misma GPU (hasta ~200); después, **réplicas
   horizontales** detrás de una cola (en Modal, `max_containers`), cada una con su A100 y ~200 casos
-  simultáneos. El modelo entra en 34 GB, así que también puede ir en GPUs más baratas de 24 GB (L4,
-  A10) cuantizándolo a 8 bits, si la demanda es baja y conviene pagar menos por hora.
+  simultáneos. Los 34 GB son lo que reserva vLLM (85% de 40 GB), casi todo para la
+  caché; los pesos ocupan mucho menos, así que también puede ir en GPUs más baratas de 24 GB (L4,
+  A10) con menos casos a la vez o cuantizándolo a 8 bits, si la demanda es baja y conviene pagar menos por hora.
 - **Mantenimiento:** si cambian los números de las normas no hay que hacer nada: el buscador lee la
   carpeta de normas que recibe. Si cambia una costumbre o una regla, hay que regenerar los datos
   (`entrenamiento.datos`, unos 20 minutos en CPU) y reentrenar (1 h 40 min, unos USD 3,50).
@@ -721,8 +726,9 @@ datos sintéticos y el etiquetado corrieron en CPU, en una computadora del grupo
 - **Acortar el prompt.** El final tiene 1.911 tokens y es dos tercios del contexto de cada caso. Una
   vez entrenado, el modelo depende poco de él: probar GEPA con el largo como segundo objetivo, o
   directamente un prompt mínimo entrenado con sus datos.
-- **Mejorar el buscador para `box_antes_del_registro`:** el único caso que falla el modelo final es una
-  búsqueda que no trajo arriba el párrafo de NOR-ADM-02.
+- **Ordenar mejor lo que trae el buscador para `box_antes_del_registro`:** en el único caso que falla
+  el modelo final, la excepción por edad (NOR-ADM-02 §1) llegó tercera, después de la regla general.
+  Subirla, o entrenar con más casos donde la excepción llega última, lo atacaría.
 - **Balancear la costumbre del voluntariado:** solo el 11% de los ejemplos avisa. Más sintéticos de
   pacientes de 75 años o más sin acompañante harían menos dependiente al modelo del prompt.
 - **Aprovechar las filas con error del historial** con DPO (respuesta correcta contra la del operador).
@@ -761,10 +767,53 @@ secreto. El modelo sin entrenar es irregular (11, 5, 5); el final no (49, 50, 50
   ambulancia), pero no los que dependen del procedimiento: el registro y la verificación siguen
   donde estaban.
 - **El entrenamiento** llevó a 1,00 todo lo que es oficio: qué buscar, a quién preguntar, qué
-  verificar. Desde el primer entrenamiento todos los controles quedan en 1,00 o a un caso de 1,00
-  (0,99), salvo `aviso_al_voluntariado`, la costumbre que no está escrita en ninguna norma.
+  verificar. En las etapas entrenadas del gráfico (desde `sft-mixto`) todos los controles quedan en
+  1,00 o a un caso de 1,00 (0,99), salvo `aviso_al_voluntariado`, la costumbre que no está escrita en ninguna norma.
 - **Esa fila cuenta la historia de la Parte 4:** 0,72 con el prompt de GEPA (que la contradecía),
   0,86 con el de la cátedra (que no decía nada) y 1,00 cuando el prompt y los datos dijeron lo mismo.
+
+### ¿Las diferencias son reales?
+
+Con 50 casos por versión de normas, una diferencia de pocos casos puede no significar nada. Las
+corridas son deterministas (temperatura 0), así que no hay ruido de muestreo del modelo: la
+incertidumbre viene de **qué casos** tocaron. Para medirla, `uv run python -m evaluacion.estadistica`
+lee los `resultados.jsonl` guardados y calcula un intervalo de confianza del 95 % (Wilson) para los
+casos resueltos y una **prueba de McNemar exacta** entre corridas consecutivas: como todas juegan los
+mismos 150 casos, cuenta solo los que resuelve una y no la otra.
+
+| Corrida | Resueltos de 150 | Intervalo del 95 % |
+|---|---|---|
+| `base` | 21 | 9 % – 20 % |
+| `ini` | 25 | 12 % – 23 % |
+| `opt` | 41 | 21 % – 35 % |
+| `sft-reales` | 107 | 64 % – 78 % |
+| `sft-mixto` | 107 | 64 % – 78 % |
+| `sft-catedra` | 129 | 80 % – 91 % |
+| **`entrega`** | **149** | **96 % – 100 %** |
+
+| De → a | Solo resuelve la primera | Solo resuelve la segunda | p |
+|---|---|---|---|
+| `base` → `ini` (reordenar el prompt) | 10 | 14 | 0,54 |
+| `ini` → `opt` (GEPA) | 10 | 26 | 0,011 |
+| `opt` → `sft-reales` (entrenar) | 10 | 76 | < 0,001 |
+| `sft-reales` → `sft-mixto` (sumar sintéticas) | 17 | 17 | 1 |
+| `sft-mixto` → `sft-catedra` (prompt de la cátedra) | 3 | 25 | < 0,001 |
+| `sft-catedra` → `gpu-catedra` (buscador en GPU) | 1 | 1 | 1 |
+| `gpu-catedra` → `gpu-final` (prompt corregido) | 0 | 20 | < 0,001 |
+
+- **Todas las mejoras que el informe atribuye a una decisión son significativas** (p < 0,05): GEPA,
+  entrenar, el prompt de la cátedra y el prompt corregido. El modelo final no pierde ningún caso que
+  resolvía el anterior.
+- **Reordenar el prompt no mejora nada** (25 contra 21, p = 0,54): confirma lo que se ve en la
+  Parte 3.
+- **Real contra mixto empatan también caso por caso**, pero no en los mismos casos: cada uno resuelve
+  17 que el otro no. El total igual esconde que el mixto es más parejo entre versiones (36, 35, 36
+  contra 40, 31, 36). Por eso elegimos el mixto por su comportamiento con otros números, no por el
+  total.
+- **Pasar el buscador a la GPU no cambia el resultado** (un caso de cada lado), como dice la Parte 5.
+- El 149/150 final tiene un intervalo de 96 % a 100 %: aun en el peor caso razonable, el modelo
+  resuelve más de 9 de cada 10 casos *de este tipo*. Las tres versiones de normas usan los mismos 50
+  pacientes, así que los 150 no son del todo independientes y los intervalos son algo optimistas.
 
 ### Entrenamiento y sobreajuste
 
@@ -832,6 +881,11 @@ veces da las mismas 150 conversaciones palabra por palabra.
   salen del mismo generador que (suponemos) usa la cátedra, así que 149/150 es una cota optimista. Si
   el test secreto trae situaciones que ningún operador ni el generador cubrieron, el modelo no las
   vio: solo sabe escribir las 14 consultas que aprendió.
+- **Elegimos mirando los mismos casos que reportamos.** La corrección del prompt y la elección del
+  modelo final salieron de analizar las fallas en los 50 casos de práctica, que son también los que
+  dan el 149/150. Es un sesgo de selección: el número del test secreto probablemente sea algo menor.
+  Lo atenúa que las correcciones fueron reglas generales (la costumbre del voluntariado), no ajustes
+  a casos puntuales.
 - **El modelo quedó especializado.** Fuera de la tarea, con o sin su prompt, no lo evaluamos;
   probablemente responda con el formato JSON del agente.
 - **La costumbre del voluntariado depende del prompt.** Con el prompt de la cátedra el modelo la
