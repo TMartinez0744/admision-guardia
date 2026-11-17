@@ -9,14 +9,14 @@ búsquedas, el contexto por caso (4 caracteres por token) y el tiempo por caso.
 """
 
 import argparse
-import json
 from pathlib import Path
 
-VERSIONES = ("original", "b", "c")
+from evaluacion.lectura import resumenes as leer_resumenes
 
 
 def fila(prefijo: str) -> str:
-    resumenes = [json.loads(Path(f"{prefijo}-{v}/resumen.json").read_text(encoding="utf-8")) for v in VERSIONES]
+    ruta = Path(prefijo)
+    resumenes = leer_resumenes(ruta.name, carpeta=ruta.parent)
     resueltos = [f"{r['resueltos']} / {r['casos']}" for r in resumenes]
     busquedas = sum(r["busquedas_por_caso"] for r in resumenes) / len(resumenes)
     tokens = sum(r["caracteres_de_contexto_por_caso"] for r in resumenes) / len(resumenes) / 4

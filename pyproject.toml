@@ -23,6 +23,9 @@ dev = [
     "modal==1.6.4",
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 # El kit se agrega con:
 #   uv add <ruta>/talksmith-ing/missions/TPFinal
 # No copiar admision/ adentro del repo: se reemplaza por otra copia al evaluar.

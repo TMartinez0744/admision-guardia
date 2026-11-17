@@ -136,6 +136,25 @@ uv run python -m evaluacion.tabla evaluacion/corridas/<nombre>
 versión, búsquedas, contexto y segundos por caso. Las corridas de cada número del informe están en
 `evaluacion/corridas/`, con todas sus conversaciones.
 
+Con 50 casos por versión, una diferencia de pocos casos puede ser azar. `evaluacion.estadistica` lee
+los `resultados.jsonl` guardados (no corre el modelo ni necesita el kit) y da los casos resueltos con
+intervalo de confianza del 95 %, una prueba de McNemar entre corridas consecutivas sobre los mismos
+150 casos y los aciertos de cada control:
+
+```bash
+uv run python -m evaluacion.estadistica                      # todas las corridas del informe, en orden
+uv run python -m evaluacion.estadistica opt sft-catedra entrega
+```
+
+### Tests
+
+Las reglas de curado (`curado/reglas.py`), las costumbres, la clasificación del historial y las
+cuentas de `evaluacion.estadistica` tienen tests en `tests/`. No necesitan GPU ni el kit:
+
+```bash
+uv run --with pytest pytest
+```
+
 ## 5. De dónde sale cada archivo
 
 Qué código, qué punto de control y qué prompt usó cada corrida de evaluación: `evaluacion/corridas/README.md`.
@@ -154,6 +173,7 @@ Qué código, qué punto de control y qué prompt usó cada corrida de evaluaci�
 | `evaluacion/corridas/capacidad-*/` | `uv run python -m evaluacion.capacidad --kit <kit> --salida ...` | casos generados con semilla 1 |
 | `evaluacion/entrenamientos/<corrida>/resumen.json` | lo escribe `entrenamiento/sft.py` al terminar | semilla 0 |
 | `evaluacion/entrenamientos/<corrida>/perdida.json` | `uv run python -m evaluacion.historia_wandb` (baja la curva de W&B; necesita `WANDB_API_KEY`) | — |
+| intervalos de confianza y pruebas de McNemar del INFORME | `uv run python -m evaluacion.estadistica` (solo lee archivos del repo) | sin aleatoriedad |
 | `informe/figuras/*.png` (gráficos del INFORME) | `uv run python -m evaluacion.graficos` (solo lee archivos del repo) | sin aleatoriedad |
 | cada entrenamiento | `entrenamiento/sft.py` (ver abajo) | configuración, semilla y revisiones en W&B y en `evaluacion/entrenamientos/<corrida>/resumen.json` |
 
