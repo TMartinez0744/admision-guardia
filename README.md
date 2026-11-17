@@ -32,8 +32,6 @@ Cada parte la encabezó un integrante, y las decisiones se discutieron en grupo:
 | 4. Entrenamiento | Pedro Del Aguila | Datos reales y sintéticos, SFT con LoRA, corridas y elección del modelo final |
 | 5. Recursos y producción | Pedro Del Aguila | Infraestructura en Modal, buscador en GPU, prueba de capacidad y proyección |
 
-Los commits de la Parte 1 los subió Trinidad; los de las Partes 2 a 5, Pedro.
-
 Todo lo de abajo se sigue **con el punto de control publicado, sin necesidad de volver a entrenar**.
 
 ## 1. Entorno
