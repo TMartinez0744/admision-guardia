@@ -148,16 +148,21 @@ uv run python -m evaluacion.estadistica opt sft-catedra entrega
 
 ### Tests
 
-Las reglas de curado (`curado/reglas.py`), las costumbres, la clasificación del historial, las
-cuentas de `evaluacion.estadistica` y la preparación de los datos de entrenamiento (la ficha de
-`curado.etiquetar`, el operador experto de `entrenamiento.datos` y la máscara del asistente de
-`entrenamiento.preparacion`) tienen tests en `tests/`. Ninguno necesita GPU:
+Cada parte tiene tests en `tests/`. Ninguno necesita GPU:
+
+| Parte | Qué se prueba | Archivo |
+|---|---|---|
+| 1 | reglas de curado, costumbres, clasificación del historial, el CSV y las conversaciones | `test_reglas.py`, `test_costumbres.py`, `test_curado_archivos.py` |
+| 2 | cómo se parten las normas, BM25 y la fusión del híbrido (con un modelo de embeddings de juguete) | `test_buscador.py`, `test_hibrido.py` |
+| 3 | los archivos de prompt (el contrato fijo, la regla del voluntariado) y el agente | `test_prompt.py` |
+| 4 | la ficha de `curado.etiquetar`, el operador experto y la máscara del asistente | `test_etiquetar.py`, `test_datos.py`, `test_preparacion.py` |
+| 5 | la lectura de corridas y las cuentas de `evaluacion.estadistica` | `test_lectura.py`, `test_estadistica.py` |
 
 ```bash
 uv run --with pytest pytest
 ```
 
-Los de `tests/test_datos.py` que juegan casos en el entorno de la cátedra buscan el kit junto al repo
+Los tests que usan las normas o juegan casos en el entorno de la cátedra buscan el kit junto al repo
 (la ruta de `pyproject.toml`) o en `ADMISION_KIT`, y si no lo encuentran se saltean.
 
 ## 5. De dónde sale cada archivo
