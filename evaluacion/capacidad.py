@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 
@@ -58,8 +59,6 @@ def main() -> None:
         print(json.dumps(filas[-1]), flush=True)
 
     a.salida.mkdir(parents=True, exist_ok=True)
-    import os
-
     resumen = {"modelo": os.environ.get("ADMISION_MODELO", entrega.MODELO_HF),
                "revision": os.environ.get("ADMISION_REVISION", entrega.REVISION_HF),
                "prompt": os.environ.get("ADMISION_PROMPT", str(entrega.RUTA_PROMPT)),
