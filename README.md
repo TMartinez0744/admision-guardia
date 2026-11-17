@@ -117,6 +117,29 @@ uv run python -m admision.evaluar_rag --entrega entrega.py \
     --normas <kit>/normas/original --consultas <kit>/rag/consultas_dev.jsonl
 ```
 
+### Medición local en Apple Silicon
+
+`evaluacion.medir_buscador` compara el mismo bge-m3 en CPU y Metal, sin cargar el
+modelo privado del agente ni cambiar `entrega.py`. Primero ejecutar la evaluación
+del buscador de arriba para descargar los pesos públicos. Después, desde la raíz
+del repo, con el kit al lado:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=../talksmith-ing/missions/TPFinal:. \
+uv run --no-project --python 3.12 \
+    --with sentence-transformers==6.2.0 --with torch==2.15.0 \
+    --with transformers==5.23.0 --with numpy==2.5.5 --with pyyaml==6.0.3 \
+    python -m evaluacion.medir_buscador --dispositivo cpu --hilos 4
+```
+
+Repetir con `--dispositivo cpu --hilos 1` y `--dispositivo mps --hilos 4`, de a un
+proceso por vez. Cada ejecución hace tres pasadas y escribe
+`evaluacion/corridas/buscador-m5-<dispositivo>-<hilos>.json`: carga del modelo,
+indexación, latencias individuales de las 60 consultas de desarrollo, métricas y
+rankings, y reproducción de las 152 búsquedas originales con y sin caché. Los
+hashes permiten comparar texto y orden de lo recuperado entre dispositivos.
+Son tiempos del buscador local; no representan al agente completo ni a la A100.
+
 ## 4. La evaluación completa
 
 Los 50 casos de práctica con las normas original, b y c, que producen la tabla del informe:
@@ -153,7 +176,7 @@ Cada parte tiene tests en `tests/`. Ninguno necesita GPU:
 | Parte | Qué se prueba | Archivo |
 |---|---|---|
 | 1 | reglas de curado, costumbres, clasificación del historial, el CSV y las conversaciones | `test_reglas.py`, `test_costumbres.py`, `test_curado_archivos.py` |
-| 2 | cómo se parten las normas, BM25 y la fusión del híbrido (con un modelo de embeddings de juguete) | `test_buscador.py`, `test_hibrido.py` |
+| 2 | cómo se parten las normas, BM25, la fusión del híbrido y la reutilización exacta de consultas | `test_buscador.py`, `test_hibrido.py`, `test_medir_buscador.py` |
 | 3 | los archivos de prompt (el contrato fijo, la regla del voluntariado) y el agente | `test_prompt.py` |
 | 4 | la ficha de `curado.etiquetar`, el operador experto y la máscara del asistente | `test_etiquetar.py`, `test_datos.py`, `test_preparacion.py` |
 | 5 | la lectura de corridas y las cuentas de `evaluacion.estadistica` | `test_lectura.py`, `test_estadistica.py` |
@@ -171,6 +194,7 @@ Qué código, qué punto de control y qué prompt usó cada corrida de evaluaci�
 
 | Archivo | Lo genera | Configuración y semilla |
 |---|---|---|
+| `evaluacion/corridas/buscador-m5-<dispositivo>-<hilos>.json` | `python -m evaluacion.medir_buscador --dispositivo <cpu\|mps> --hilos <n>` (entorno y comando completos en sección 3) | bge-m3 con revisión fija, float32, k=3, normas originales, tres pasadas; sin generación aleatoria |
 | `historial_clasificado.csv` | `uv run python -m curado.clasificar` | sin aleatoriedad |
 | `datos/conversaciones.jsonl` | `uv run python -m curado.conversaciones` | sin aleatoriedad |
 | `prompt/sistema_optimizado.txt` | `uv run python -m prompt.optimizar --kit <kit> --salida corridas/gepa` | semilla 0, 60 + 40 casos generados, 600 casos jugados |

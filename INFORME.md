@@ -272,6 +272,65 @@ a 512 y 0,983 a 1024. Sigue fallando en 5 de las 12 consultas coloquiales (recal
 
 En un M1 Max, armar el buscador tarda 7 s (81 chunks) y cada búsqueda unos 100 ms en CPU.
 
+### Medición adicional en M5: CPU, Metal y consultas repetidas
+
+El 17/11 repetimos la medición en una **MacBook Pro M5, 10 núcleos y 32 GB**,
+con `evaluacion.medir_buscador`. Se conservaron los 81 párrafos de las normas
+originales, bge-m3 en la revisión fijada en `buscador.hibrido.MODELOS`, float32
+y `k = 3`. Cada configuración corrió sola, con tres cargas del modelo en el
+mismo proceso y tres consultas de calentamiento antes de medir. Los pesos ya
+estaban descargados: la construcción incluye cargar el modelo e indexar los
+párrafos, pero excluye descargas e importar las bibliotecas.
+
+Las latencias se midieron sobre las **60 consultas distintas de desarrollo**, una
+por llamada, sin caché. Para cada configuración reportamos la mediana de los tres
+tiempos de construcción y de las tres medianas y percentiles 95 de latencia:
+
+| Dispositivo | Hilos CPU | Construcción | Consulta, mediana | Consulta, p95 |
+|---|---|---|---|---|
+| CPU | 1 | 5,83 s | 38,97 ms | 43,45 ms |
+| CPU | 4 | 4,64 s | 39,32 ms | 45,74 ms |
+| Metal (MPS) | 4 | 2,95 s | 20,25 ms | 22,69 ms |
+
+Metal redujo casi a la mitad la latencia frente a CPU con 4 hilos. Subir de 1 a
+4 hilos mejoró la indexación, pero no las consultas individuales. La primera
+construcción en CPU con 1 hilo tardó 9,20 s, contra 5,83 y 5,76 s en las
+siguientes: el estado de las cachés de archivos también importa.
+La cifra previa del M1 Max es orientativa; sin repetir allí este mismo protocolo,
+con iguales versiones e hilos, no podemos atribuir la diferencia solo al chip.
+
+**Calidad y orden conservados en lo medido:** las tres configuraciones dieron
+recall 0,883, precisión 0,339, 270 tokens y 52/60 consultas completas. No cambió
+el texto ni el orden de ninguno de los tres párrafos recuperados para las 60
+consultas de desarrollo ni para las 14 consultas distintas de las trazas finales
+con normas originales. No se afirma igualdad de los vectores, sino de los
+resultados que recibe el agente. El ranking de similitudes sigue en NumPy/CPU;
+Metal acelera el modelo de embeddings. Esta selección de dispositivo se hace
+solo en el experimento, sin modificar el buscador de la entrega.
+
+También reprodujimos las **152 búsquedas** de `entrega-original`, con y sin
+`functools.lru_cache(maxsize=128)` sobre `recuperar`. La caché empezó vacía en
+cada pasada y se alternó cuál variante se medía primero:
+
+| Dispositivo | Sin caché, 152 búsquedas | Con caché | Recuperaciones efectivas |
+|---|---|---|---|
+| CPU, 1 hilo | 5,83 s | 0,55 s | 14 en vez de 152 |
+| CPU, 4 hilos | 5,95 s | 0,55 s | 14 en vez de 152 |
+| Metal, 4 hilos CPU | 2,92 s | 0,26 s | 14 en vez de 152 |
+
+Los tiempos son medianas de tres pasadas. El texto y el orden fueron idénticos
+con y sin caché en todas ellas. Es una oportunidad para evitar cómputo repetido:
+138 de las 152 llamadas reutilizan una consulta anterior. La caché debe quedar
+ligada a una instancia con las mismas normas, modelo y configuración.
+No la incorporamos a `entrega.py`: estas pruebas reproducen las búsquedas
+guardadas, **no ejecutan el agente completo ni miden la A100**. El ahorro total
+por caso y la calidad del agente con esa optimización siguen pendientes.
+
+Los comandos están en README, sección 3. Los resultados crudos, tiempos por
+consulta, rankings y hashes del script, consultas y normas están en
+`evaluacion/corridas/buscador-m5-{cpu-1,cpu-4,mps-4}.json`, con las versiones del
+entorno. El experimento no necesita el modelo privado de Hugging Face.
+
 Dos salvedades:
 
 - Elegimos el modelo y `k` mirando estas 60 consultas, que son las mismas con las que lo medimos.
