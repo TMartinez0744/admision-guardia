@@ -24,6 +24,11 @@ from curado.reglas import cargar_parametros, ficha_esperada
 
 SI = "sí"
 
+RAIZ = Path(__file__).resolve().parent.parent
+# Por defecto, el kit junto al repo (la ruta de pyproject.toml) y la salida en la raíz del repo.
+KIT = RAIZ.parent / "talksmith-ing" / "missions" / "TPFinal"
+SALIDA = RAIZ / "historial_clasificado.csv"
+
 # Qué norma respalda cada campo, para poder decir por qué la fila es un error.
 NORMA_DEL_CAMPO = {
     "registro": "NOR-ADM-01 §2-§3 / NOR-ADM-03 §1",
@@ -75,43 +80,54 @@ def clasificar(fila: dict, parametros: dict[str, int]) -> tuple[str, list[str]]:
     return ("ruido", ruidos) if ruidos else ("correcta", [])
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--kit", default="../talksmith-ing/missions/TPFinal")
-    parser.add_argument("--normas", default=None, help="por defecto, <kit>/normas/original")
-    parser.add_argument("--salida", default="historial_clasificado.csv")
-    args = parser.parse_args()
+def leer_historial(kit: Path) -> list[dict]:
+    with open(kit / "historial" / "historial.csv", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
 
-    kit = Path(args.kit)
-    normas = Path(args.normas) if args.normas else kit / "normas" / "original"
-    parametros = cargar_parametros(normas)
-    filas = list(csv.DictReader((kit / "historial" / "historial.csv").open(encoding="utf-8")))
 
-    resultados, motivos_por_tipo = [], collections.defaultdict(collections.Counter)
+def guardar(filas: list[dict], tipos: list[str], salida: Path) -> None:
+    """El CSV ``id,tipo``, una fila del historial por línea y en su orden."""
+    with open(salida, "w", encoding="utf-8", newline="") as f:
+        escritor = csv.writer(f)
+        escritor.writerow(["id", "tipo"])
+        escritor.writerows((fila["id"], tipo) for fila, tipo in zip(filas, tipos))
+
+
+def resumen(filas: list[dict], clasificaciones: list[tuple[str, list[str]]]) -> list[str]:
+    """Las líneas del resumen: cuántas filas de cada tipo, qué campo falla más y qué operadores meten más ruido."""
+    cuenta = collections.Counter(tipo for tipo, _ in clasificaciones)
+    motivos_por_tipo = collections.defaultdict(collections.Counter)
     por_operador = collections.defaultdict(collections.Counter)
-    for fila in filas:
-        tipo, motivos = clasificar(fila, parametros)
-        resultados.append((fila["id"], tipo))
+    for fila, (tipo, motivos) in zip(filas, clasificaciones):
         por_operador[fila["operador"]][tipo] += 1
         for motivo in motivos:
             motivos_por_tipo[tipo][motivo.split(":")[0]] += 1
 
-    with Path(args.salida).open("w", encoding="utf-8", newline="") as f:
-        escritor = csv.writer(f)
-        escritor.writerow(["id", "tipo"])
-        escritor.writerows(resultados)
-
-    cuenta = collections.Counter(t for _, t in resultados)
-    print(f"{len(filas)} filas -> {args.salida}")
-    for tipo in ("correcta", "error", "ruido"):
-        print(f"  {tipo:9s} {cuenta[tipo]:5d}  ({cuenta[tipo]/len(filas):5.1%})")
+    lineas = [f"  {tipo:9s} {cuenta[tipo]:5d}  ({cuenta[tipo]/len(filas):5.1%})" for tipo in ("correcta", "error", "ruido")]
     for tipo in ("error", "ruido"):
-        print(f"\n  {tipo} por campo:")
-        for campo, n in motivos_por_tipo[tipo].most_common():
-            print(f"    {campo:24s} {n:4d}")
-    print("\n  operadores con mas ruido:")
+        lineas.append(f"\n  {tipo} por campo:")
+        lineas += [f"    {campo:24s} {n:4d}" for campo, n in motivos_por_tipo[tipo].most_common()]
+    lineas.append("\n  operadores con mas ruido:")
     for operador, c in sorted(por_operador.items(), key=lambda x: -x[1]["ruido"])[:5]:
-        print(f"    {operador}  ruido {c['ruido']:3d}  error {c['error']:3d}  correcta {c['correcta']:3d}")
+        lineas.append(f"    {operador}  ruido {c['ruido']:3d}  error {c['error']:3d}  correcta {c['correcta']:3d}")
+    return lineas
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--kit", default=str(KIT))
+    parser.add_argument("--normas", default=None, help="por defecto, <kit>/normas/original")
+    parser.add_argument("--salida", default=str(SALIDA))
+    args = parser.parse_args()
+
+    kit = Path(args.kit)
+    parametros = cargar_parametros(Path(args.normas) if args.normas else kit / "normas" / "original")
+    filas = leer_historial(kit)
+    clasificaciones = [clasificar(fila, parametros) for fila in filas]
+    guardar(filas, [tipo for tipo, _ in clasificaciones], Path(args.salida))
+
+    print(f"{len(filas)} filas -> {args.salida}")
+    print("\n".join(resumen(filas, clasificaciones)))
 
 
 if __name__ == "__main__":

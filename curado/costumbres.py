@@ -7,7 +7,7 @@ y la evidencia está en ``costumbres.md``.
 
 from __future__ import annotations
 
-from curado.reglas import credenciales_de
+from curado.reglas import credenciales_de, texto_de
 
 EDAD_VOLUNTARIADO = 75
 
@@ -18,7 +18,7 @@ def aviso_al_voluntariado(fila: dict) -> bool:
     Ninguna norma menciona al voluntariado. El Servicio Social de NOR-COB-03 §3
     es otra cosa y depende de la cobertura, no de la edad.
     """
-    return int(fila["edad"]) >= EDAD_VOLUNTARIADO and not fila["acompanante"].strip()
+    return int(fila["edad"]) >= EDAD_VOLUNTARIADO and not texto_de(fila, "acompanante")
 
 
 def entidad_a_verificar(fila: dict) -> str | None:
