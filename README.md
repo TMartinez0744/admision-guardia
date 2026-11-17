@@ -148,12 +148,17 @@ uv run python -m evaluacion.estadistica opt sft-catedra entrega
 
 ### Tests
 
-Las reglas de curado (`curado/reglas.py`), las costumbres, la clasificación del historial y las
-cuentas de `evaluacion.estadistica` tienen tests en `tests/`. No necesitan GPU ni el kit:
+Las reglas de curado (`curado/reglas.py`), las costumbres, la clasificación del historial, las
+cuentas de `evaluacion.estadistica` y la preparación de los datos de entrenamiento (la ficha de
+`curado.etiquetar`, el operador experto de `entrenamiento.datos` y la máscara del asistente de
+`entrenamiento.preparacion`) tienen tests en `tests/`. Ninguno necesita GPU:
 
 ```bash
 uv run --with pytest pytest
 ```
+
+Los de `tests/test_datos.py` que juegan casos en el entorno de la cátedra buscan el kit junto al repo
+(la ruta de `pyproject.toml`) o en `ADMISION_KIT`, y si no lo encuentran se saltean.
 
 ## 5. De dónde sale cada archivo
 

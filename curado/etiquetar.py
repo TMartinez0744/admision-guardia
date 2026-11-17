@@ -33,7 +33,7 @@ def _credencial_texto(credencial: tuple[str, str, str]) -> str:
     return f"{entidad} ({TIPO_TEXTO[tipo]}) {numero}"
 
 
-def _a_verificar(caso: Caso) -> tuple[str, str, str] | None:
+def credencial_a_verificar(caso: Caso) -> tuple[str, str, str] | None:
     """La cobertura (no ART) que corresponde verificar.
 
     Con credenciales, la presentada; con dos, la prepaga (costumbre 2). Sin
@@ -51,7 +51,7 @@ def _a_verificar(caso: Caso) -> tuple[str, str, str] | None:
 
 def como_fila(caso: Caso) -> dict:
     """El caso con las columnas del historial que usan las reglas."""
-    credencial = _a_verificar(caso)
+    credencial = credencial_a_verificar(caso)
     respuesta = ""
     if credencial:
         respuesta = "activa" if caso.afiliaciones[f"{credencial[1]}|{credencial[2]}"] else "inactiva"
@@ -78,7 +78,7 @@ def esperada(caso: Caso, parametros: dict[str, int]) -> dict:
     fila = como_fila(caso)
     ficha = ficha_esperada(fila, parametros)
     ficha["aviso_al_voluntariado"] = caso.edad >= EDAD_VOLUNTARIADO and not caso.acompanante
-    credencial = _a_verificar(caso)
+    credencial = credencial_a_verificar(caso)
     otras = [c[1] for c in caso.credenciales if c != credencial]
     if caso.trabajo:
         # Accidente de trabajo: se verifica la ART con el CUIL, no la cobertura propia (NOR-COB-02 §5).
