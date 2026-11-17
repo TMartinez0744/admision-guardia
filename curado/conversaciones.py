@@ -25,6 +25,8 @@ from pathlib import Path
 
 from admision.ejemplo import mensaje_de_sistema, primer_mensaje
 
+from curado.clasificar import KIT, RAIZ
+
 FIN = "registrar_decision"
 
 
@@ -57,36 +59,53 @@ def bien_formada(mensajes: list[dict]) -> bool:
     return True
 
 
+def leer_clasificacion(ruta: Path) -> dict[str, str]:
+    """{id de la fila: tipo}, de ``historial_clasificado.csv``."""
+    with open(ruta, encoding="utf-8") as f:
+        return {fila["id"]: fila["tipo"] for fila in csv.DictReader(f)}
+
+
+def leer_trazas(kit: Path) -> list[dict]:
+    texto = (kit / "historial" / "trazas.jsonl").read_text(encoding="utf-8")
+    return [json.loads(x) for x in texto.splitlines() if x.strip()]
+
+
+def seleccionar(trazas: list[dict], clasificacion: dict[str, str], tipos: set[str]) -> tuple[list[dict], int, list[str]]:
+    """Las conversaciones de las trazas con un tipo de ``tipos``, las descartadas por tipo y los ids mal formados."""
+    conversaciones, descartadas, mal_formadas = [], 0, []
+    for traza in trazas:
+        if clasificacion.get(traza["id"]) not in tipos:
+            descartadas += 1
+            continue
+        mensajes = conversacion(traza)
+        if not bien_formada(mensajes):
+            mal_formadas.append(traza["id"])
+            continue
+        conversaciones.append({"id": traza["id"], "paciente_id": traza["paciente_id"], "messages": mensajes})
+    return conversaciones, descartadas, mal_formadas
+
+
+def guardar(conversaciones: list[dict], salida: Path) -> None:
+    salida.parent.mkdir(parents=True, exist_ok=True)
+    with salida.open("w", encoding="utf-8", newline="\n") as f:
+        f.writelines(json.dumps(c, ensure_ascii=False) + "\n" for c in conversaciones)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--kit", default="../talksmith-ing/missions/TPFinal")
-    parser.add_argument("--clasificacion", default="historial_clasificado.csv")
-    parser.add_argument("--salida", default="datos/conversaciones.jsonl")
+    parser.add_argument("--kit", default=str(KIT))
+    parser.add_argument("--clasificacion", default=str(RAIZ / "historial_clasificado.csv"))
+    parser.add_argument("--salida", default=str(RAIZ / "datos" / "conversaciones.jsonl"))
     parser.add_argument("--tipos", default="correcta", help="separados por coma")
     args = parser.parse_args()
 
     tipos = {t.strip() for t in args.tipos.split(",")}
-    kit = Path(args.kit)
-    clasificacion = {f["id"]: f["tipo"] for f in csv.DictReader(Path(args.clasificacion).open(encoding="utf-8"))}
-    trazas = [json.loads(x) for x in (kit / "historial" / "trazas.jsonl").read_text(encoding="utf-8").splitlines() if x.strip()]
-
+    trazas = leer_trazas(Path(args.kit))
+    conversaciones, descartadas, mal_formadas = seleccionar(trazas, leer_clasificacion(Path(args.clasificacion)), tipos)
     salida = Path(args.salida)
-    salida.parent.mkdir(parents=True, exist_ok=True)
-    escritas, descartadas, mal_formadas = 0, 0, []
-    with salida.open("w", encoding="utf-8", newline="\n") as f:
-        for traza in trazas:
-            if clasificacion.get(traza["id"]) not in tipos:
-                descartadas += 1
-                continue
-            mensajes = conversacion(traza)
-            if not bien_formada(mensajes):
-                mal_formadas.append(traza["id"])
-                continue
-            f.write(json.dumps({"id": traza["id"], "paciente_id": traza["paciente_id"], "messages": mensajes},
-                               ensure_ascii=False) + "\n")
-            escritas += 1
+    guardar(conversaciones, salida)
 
-    print(f"{escritas} conversaciones -> {salida}")
+    print(f"{len(conversaciones)} conversaciones -> {salida}")
     print(f"  descartadas por tipo: {descartadas}")
     print(f"  mal formadas: {len(mal_formadas)}{' ' + str(mal_formadas[:5]) if mal_formadas else ''}")
     print(f"  tamaño: {salida.stat().st_size / 1e6:.1f} MB")

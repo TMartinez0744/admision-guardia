@@ -32,6 +32,11 @@ PATRON_CREDENCIAL = re.compile(r"^(?P<nombre>.+?)\s*\((?P<tipo>[^)]+)\)\s*(?P<nu
 PATRON_ART = re.compile(r"^(?P<nombre>.+?)\s+CUIL\s+(?P<cuil>\S+)$")
 
 
+def texto_de(fila: dict, columna: str) -> str:
+    """El valor de una columna del historial sin espacios; una celda vacía o faltante es ``""``."""
+    return (fila[columna] or "").strip()
+
+
 def cargar_parametros(ruta_normas: Path) -> dict[str, int]:
     datos = yaml.safe_load((Path(ruta_normas) / "parametros.yaml").read_text(encoding="utf-8"))
     return {p["codigo"]: p["valor"] for p in datos["parametros"]}
@@ -68,7 +73,7 @@ def ultimo_digito(numero: str) -> int | None:
 
 def credenciales_de(fila: dict) -> list[tuple[str, str, str]]:
     """Las credenciales presentadas, o la cobertura declarada si no presentó ninguna."""
-    crudas = (fila["credenciales"] or "").strip() or (fila["cobertura_declarada"] or "").strip()
+    crudas = texto_de(fila, "credenciales") or texto_de(fila, "cobertura_declarada")
     partidas = [partir_credencial(x) for x in crudas.split(";")]
     return [c for c in partidas if c]
 
@@ -83,7 +88,7 @@ def credencial_en_juego(fila: dict) -> tuple[str, str, str] | None:
     credenciales = credenciales_de(fila)
     if not credenciales:
         return None
-    verificada = (fila["entidad_verificada"] or "").strip()
+    verificada = texto_de(fila, "entidad_verificada")
     if verificada:
         for c in credenciales:
             if c[0] == verificada:
@@ -93,8 +98,8 @@ def credencial_en_juego(fila: dict) -> tuple[str, str, str] | None:
 
 def _registro(fila: dict, p: dict[str, int]) -> tuple[str, str | None]:
     """NOR-ADM-01 §2 §3 y NOR-ADM-03 §1."""
-    tipo = (fila["documento_tipo"] or "").strip().lower()
-    numero = (fila["documento_numero"] or "").strip() or None
+    tipo = texto_de(fila, "documento_tipo").lower()
+    numero = texto_de(fila, "documento_numero") or None
     if not tipo:
         return "provisorio", None
     if tipo in {"pasaporte", "cédula"} and int(fila["nivel"]) <= p["P-ADM-3"]:
@@ -111,8 +116,8 @@ def _box_antes(fila: dict, p: dict[str, int]) -> bool:
 
 def _circuito(fila: dict, p: dict[str, int]) -> tuple[str, int | None]:
     """NOR-TDE-01 a NOR-TDE-03, con el descuento por ambulancia de NOR-TDE-04 §1."""
-    motivo = (fila["motivo"] or "").strip().lower()
-    sepsis = (fila["sospecha_sepsis"] or "").strip().lower()
+    motivo = texto_de(fila, "motivo").lower()
+    sepsis = texto_de(fila, "sospecha_sepsis").lower()
     if sepsis and sepsis != "no":
         circuito = "codigo_sepsis"
         plazo = p["P-TDE-3"] if sepsis in SEPSIS_GRAVE else p["P-TDE-4"]
@@ -122,14 +127,14 @@ def _circuito(fila: dict, p: dict[str, int]) -> tuple[str, int | None]:
         circuito, plazo = "codigo_acv", p["P-TDE-2"]
     else:
         return "ninguno", None
-    if (fila["llegada"] or "").strip().lower() == "en ambulancia":
+    if texto_de(fila, "llegada").lower() == "en ambulancia":
         plazo -= p["P-TDE-5"]
     return circuito, plazo
 
 
 def _cobertura(fila: dict, p: dict[str, int]) -> tuple[str, str | None]:
     """NOR-COB-02 §5 (ART), NOR-COB-03 §1 §4 y NOR-COB-04 §1 §3 §4."""
-    if (fila["lesion_trabajo"] or "").strip().lower() != "no":
+    if texto_de(fila, "lesion_trabajo").lower() != "no":
         # Accidente de trabajo o en el trayecto: cubre la ART, y NOR-COB-04 no aplica.
         return "art", nombre_de_art(fila["art_declarada"])
 
@@ -140,7 +145,7 @@ def _cobertura(fila: dict, p: dict[str, int]) -> tuple[str, str | None]:
 
     nombre, tipo, numero = credencial
     reservada = ultimo_digito(numero) == p["P-COB-2"]
-    activa = (fila["respuesta_verificacion"] or "").strip().lower() == "activa"
+    activa = texto_de(fila, "respuesta_verificacion").lower() == "activa"
 
     if reservada:
         # NOR-COB-04 §1: sin cobertura, pero se notifica igual, este activa o no.
