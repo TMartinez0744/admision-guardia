@@ -1,0 +1,35 @@
+{
+  "version_normas": "original",
+  "consultas": 152,
+  "consultas_distintas": 14,
+  "script_sha256": "4774a3bb33ba54202e71e03b47455546dd3afd3c01e294938e0a7bfe1d25c7d5",
+  "modelo": [
+    "BAAI/bge-m3",
+    "5617a9f61b028005a4858fdac845db406aefb181"
+  ],
+  "torch": "2.15.0",
+  "trazas_sha256": "d17dd99ee9d31c4a5e331fab0bfbc912168dba843f5182fa5fd275caebd88c96",
+  "plataforma": "macOS-26.5.1-arm64-arm-64bit",
+  "dispositivo": "cpu",
+  "hilos": 4,
+  "salidas_identicas": true,
+  "segundos_sin_cache": 6.081,
+  "segundos_con_cache": 0.541,
+  "aceleracion_buscador": 11.24,
+  "repeticiones": [
+    {
+      "sin_cache": 6.080505792000622,
+      "con_cache": 0.5411593749995518
+    },
+    {
+      "sin_cache": 5.91165062500113,
+      "con_cache": 0.5695805420000397
+    },
+    {
+      "sin_cache": 6.318705834000866,
+      "con_cache": 0.5383732080008485
+    }
+  ],
+  "estadistico": "mediana de 3 pasadas con caché vacía en cada pasada",
+  "limite": "Consultas grabadas; no mide el agente ni predice tiempos de A100. La caché solo vale para la misma instancia con las mismas normas, modelo y configuración."
+}
