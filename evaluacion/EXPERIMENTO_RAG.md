@@ -101,8 +101,8 @@ La mediana fue **6,081 s sin caché y 0,541 s con caché**, una aceleración de
 
 Esto mide el buscador local con consultas grabadas. No mide el tiempo completo
 del agente, el comportamiento con consultas nuevas ni la aceleración en la A100.
-La caché se incorporó después a `BuscadorHibrido` sin medirla todavía en la GPU;
-`evaluacion.validar_cache` comprueba que no cambia los resultados en original, b y c.
+Este resultado llevó a incorporar la caché a `BuscadorHibrido`; `evaluacion.validar_cache`
+y `evaluacion.validar_trazas` comprueban que no cambia los resultados en original, b y c.
 
 ## Cómo reproducir
 

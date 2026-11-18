@@ -1,0 +1,43 @@
+{
+  "codigo": "e57bdac4fc2d1708545270038e513d239eaa3f66",
+  "script_sha256": "6ead22326f9948bd9fcf1792413900fad81550d65e3c1b6269fe23a5baff0902",
+  "limite": "Compara las observaciones de buscar_normativa; no ejecuta el agente ni mide tiempos.",
+  "normas": {
+    "original": {
+      "trazas_sha256": "d17dd99ee9d31c4a5e331fab0bfbc912168dba843f5182fa5fd275caebd88c96",
+      "busquedas": 152,
+      "consultas_distintas": 14,
+      "cache": {
+        "hits": 138,
+        "misses": 14,
+        "maxsize": 128,
+        "currsize": 14
+      },
+      "observaciones_identicas": true
+    },
+    "b": {
+      "trazas_sha256": "0ee9e4b0c77c42e71765f043bc5e3967ca16553cfde1abb62ac94a059bc87500",
+      "busquedas": 172,
+      "consultas_distintas": 9,
+      "cache": {
+        "hits": 163,
+        "misses": 9,
+        "maxsize": 128,
+        "currsize": 9
+      },
+      "observaciones_identicas": true
+    },
+    "c": {
+      "trazas_sha256": "efa99ee85a7e902d5a9efec8dfec4230c892368f8725d91a592f7f9f5b2e30ad",
+      "busquedas": 172,
+      "consultas_distintas": 9,
+      "cache": {
+        "hits": 163,
+        "misses": 9,
+        "maxsize": 128,
+        "currsize": 9
+      },
+      "observaciones_identicas": true
+    }
+  }
+}
