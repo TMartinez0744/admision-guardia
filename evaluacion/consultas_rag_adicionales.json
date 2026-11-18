@@ -1,0 +1,18 @@
+[
+  {"id": "a01", "tipo": "coloquial", "consulta": "Vino sin identificación y nadie puede traerla por ahora, ¿lo puedo dejar anotado igual?", "parrafos": [["NOR-ADM-01", 3]]},
+  {"id": "a02", "tipo": "coloquial", "consulta": "Ya lo anotamos sin papeles y ahora la hija apareció con el DNI, ¿cómo seguimos?", "parrafos": [["NOR-ADM-01", 3]]},
+  {"id": "a03", "tipo": "coloquial", "consulta": "Es una persona grande pero enfermería no la marcó como muy urgente, ¿igual entra al consultorio antes del papeleo?", "parrafos": [["NOR-ADM-02", 1]]},
+  {"id": "a04", "tipo": "coloquial", "consulta": "Trae un documento extranjero y está entre las urgencias más altas, ¿la ficha queda definitiva?", "parrafos": [["NOR-ADM-03", 1]]},
+  {"id": "a05", "tipo": "coloquial", "consulta": "Le duele el pecho y todavía no conseguimos consultorio, ¿pueden hacerle el electro afuera?", "parrafos": [["NOR-TDE-01", 2]]},
+  {"id": "a06", "tipo": "coloquial", "consulta": "Se despertó con medio cuerpo débil y no sabemos a qué hora empezó, ¿qué horario tenemos que averiguar?", "parrafos": [["NOR-TDE-02", 2]]},
+  {"id": "a07", "tipo": "coloquial", "consulta": "Enfermería anotó posible infección generalizada pero sin shock, ¿qué plazo de sepsis le toca?", "parrafos": [["NOR-TDE-03", 1]]},
+  {"id": "a08", "tipo": "coloquial", "consulta": "Lo trajo el móvil de emergencias, ¿se acorta la espera del circuito urgente?", "parrafos": [["NOR-TDE-04", 1]]},
+  {"id": "a09", "tipo": "coloquial", "consulta": "No trajo el carnet de la mutual, ¿qué datos le pido antes de llamar?", "parrafos": [["NOR-COB-01", 1]]},
+  {"id": "a10", "tipo": "coloquial", "consulta": "Está inconsciente, vino solo y no tiene carnet, ¿a quién le pregunto quién lo cubre?", "parrafos": [["NOR-COB-01", 3]]},
+  {"id": "a11", "tipo": "coloquial", "consulta": "Se cayó yendo a trabajar, pero también tiene una prepaga, ¿con cuál verifico y qué número uso?", "parrafos": [["NOR-COB-02", 5]]},
+  {"id": "a12", "tipo": "coloquial", "consulta": "La mutual confirmó que lo dieron de baja, ¿igual tengo que avisarles que lo atendimos?", "parrafos": [["NOR-COB-03", 4]]},
+  {"id": "a13", "tipo": "coloquial", "consulta": "El afiliado termina en el dígito especial, ¿lo marco sin cobertura aunque la mutual diga que está al día?", "parrafos": [["NOR-COB-04", 1]]},
+  {"id": "a14", "tipo": "dos_secciones", "consulta": "Viene con dolor de pecho en ambulancia, ¿cómo calculo los minutos para hacerle el electro?", "parrafos": [["NOR-TDE-01", 1], ["NOR-TDE-04", 1]]},
+  {"id": "a15", "tipo": "dos_secciones", "consulta": "Es mayor y tiene pasaporte, ¿qué reglas miro para decidir el tipo de registro y si va antes al box?", "parrafos": [["NOR-ADM-02", 1], ["NOR-ADM-03", 1]]},
+  {"id": "a16", "tipo": "dos_secciones", "consulta": "La prepaga dice que está inactivo pero su número termina en el dígito reservado, ¿se avisa o no?", "parrafos": [["NOR-COB-03", 4], ["NOR-COB-04", 1]]}
+]

@@ -13,6 +13,9 @@ Trabajo final — Inteligencia Artificial Generativa — Universidad Austral —
 original, b y c (referencia de la cátedra con SFT: 25, 24, 25), a 0,44 s y USD 0,00026 por caso en
 una A100 de 40 GB. Detalle en `INFORME.md`.
 
+Esas corridas son anteriores a la caché del buscador. La caché ya está incorporada
+y validada localmente; falta volver a medir el agente completo en A100 con ella.
+
 Integrantes:
 
 - Celina Arias Duval — cariasduval@mail.austral.edu.ar — `cmariasduval`
@@ -117,6 +120,30 @@ uv run python -m admision.evaluar_rag --entrega entrega.py \
     --normas <kit>/normas/original --consultas <kit>/rag/consultas_dev.jsonl
 ```
 
+### Mediciones locales del buscador (opcionales)
+
+Sin GPU ni el modelo privado del agente, desde la raíz del repo y con el kit al
+lado. Primero ejecutar la evaluación de arriba para descargar bge-m3:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=../talksmith-ing/missions/TPFinal:. \
+uv run --no-project --python 3.12 \
+    --with sentence-transformers==6.2.0 --with torch==2.15.0 \
+    --with transformers==5.23.0 --with numpy==2.5.5 --with pyyaml==6.0.3 \
+    python -m evaluacion.validar_cache
+```
+
+Con el mismo entorno, cambiando el módulo final:
+
+- `evaluacion.validar_cache`: comprueba que la caché del buscador de `entrega.py`
+  no cambia texto ni orden en las búsquedas guardadas de original, b y c.
+- `evaluacion.medir_buscador --dispositivo <cpu|mps> --hilos <n>`: latencias en CPU
+  o Metal (mediciones guardadas con el medidor del commit `ae5ca6c`).
+- `evaluacion.diagnostico_rag` y `evaluacion.cache_rag`: el experimento de
+  `evaluacion/EXPERIMENTO_RAG.md`.
+
+Son tiempos locales, no representan al agente completo ni a la A100.
+
 ## 4. La evaluación completa
 
 Los 50 casos de práctica con las normas original, b y c, que producen la tabla del informe:
@@ -153,7 +180,7 @@ Cada parte tiene tests en `tests/`. Ninguno necesita GPU:
 | Parte | Qué se prueba | Archivo |
 |---|---|---|
 | 1 | reglas de curado, costumbres, clasificación del historial, el CSV y las conversaciones | `test_reglas.py`, `test_costumbres.py`, `test_curado_archivos.py` |
-| 2 | cómo se parten las normas, BM25 y la fusión del híbrido (con un modelo de embeddings de juguete) | `test_buscador.py`, `test_hibrido.py` |
+| 2 | cómo se parten las normas, BM25, la fusión del híbrido, caché acotada por instancia y aislamiento entre normas y modos | `test_buscador.py`, `test_hibrido.py`, `test_medir_buscador.py` |
 | 3 | los archivos de prompt (el contrato fijo, la regla del voluntariado) y el agente | `test_prompt.py` |
 | 4 | la ficha de `curado.etiquetar`, el operador experto y la máscara del asistente | `test_etiquetar.py`, `test_datos.py`, `test_preparacion.py` |
 | 5 | la lectura de corridas y las cuentas de `evaluacion.estadistica` | `test_lectura.py`, `test_estadistica.py` |
@@ -171,6 +198,10 @@ Qué código, qué punto de control y qué prompt usó cada corrida de evaluaci�
 
 | Archivo | Lo genera | Configuración y semilla |
 |---|---|---|
+| `evaluacion/corridas/cache-entrega.json` | `python -m evaluacion.validar_cache` (entorno en sección 3) | consultas guardadas de original, b y c, caché vacía por versión; sin generación aleatoria |
+| `evaluacion/corridas/buscador-m5-<dispositivo>-<hilos>.json` | `python -m evaluacion.medir_buscador --dispositivo <cpu\|mps> --hilos <n>` (entorno y comando completos en sección 3) | bge-m3 con revisión fija, float32, k=3, normas originales, tres pasadas; sin generación aleatoria |
+| `evaluacion/corridas/diagnostico-rag.json` | `python -m evaluacion.diagnostico_rag` (entorno en sección 3) | bge-m3 con revisión fija, normas originales, 60 consultas de desarrollo + 16 de `evaluacion/consultas_rag_adicionales.json`; sin generación aleatoria |
+| `evaluacion/corridas/cache-rag.json` | `python -m evaluacion.cache_rag` (entorno en sección 3) | 152 búsquedas de `entrega-original`, CPU 4 hilos, mediana de tres pasadas; sin generación aleatoria |
 | `historial_clasificado.csv` | `uv run python -m curado.clasificar` | sin aleatoriedad |
 | `datos/conversaciones.jsonl` | `uv run python -m curado.conversaciones` | sin aleatoriedad |
 | `prompt/sistema_optimizado.txt` | `uv run python -m prompt.optimizar --kit <kit> --salida corridas/gepa` | semilla 0, 60 + 40 casos generados, 600 casos jugados |

@@ -104,3 +104,73 @@ def test_entrega_usa_bge_m3_denso_con_tres_resultados(monkeypatch):
     monkeypatch.setattr(entrega, "BuscadorHibrido", lambda ruta, **k: pedidos.append((ruta, k)))
     entrega.construir_buscador("normas/b")
     assert pedidos == [(Path("normas/b"), {"modelo": "bge-m3", "modo": "denso", "k_entorno": 3})]
+
+
+@pytest.mark.parametrize("modo", ["denso", "hibrido"])
+def test_cache_reutiliza_consulta_sin_cambiar_resultados(normas, modelo, modo):
+    buscador = hibrido.BuscadorHibrido(normas, modo=modo)
+    modelo.textos.clear()
+    esperado = buscador.recuperar("fiebre", 3)
+    assert buscador.recuperar("fiebre", 3) == esperado
+    assert modelo.textos == ["query: fiebre"]
+
+
+def test_cache_distingue_consulta_y_k(normas, modelo):
+    buscador = hibrido.BuscadorHibrido(normas, modo="denso")
+    modelo.textos.clear()
+    uno = buscador.recuperar("fiebre", 1)
+    tres = buscador.recuperar("fiebre", 3)
+    buscador.recuperar("registro", 3)
+    assert uno == tres[:1]
+    assert len(tres) == 3
+    assert buscador.recuperar("fiebre", 1) == uno
+    assert modelo.textos == ["query: fiebre", "query: fiebre", "query: registro"]
+
+
+def test_cache_respeta_cambio_de_modo_del_comparador(normas, modelo):
+    buscador = hibrido.BuscadorHibrido(normas, modo="denso")
+    denso = buscador.recuperar("fiebre", 1)
+    buscador.modo = "bm25"
+    lexical = buscador.recuperar("fiebre", 1)
+    assert lexical == [buscador.chunks[buscador.ranking_bm25("fiebre")[0]]]
+    assert lexical != denso
+    buscador.modo = "denso"
+    assert buscador.recuperar("fiebre", 1) == denso
+
+
+def test_cache_no_comparte_resultados_entre_normas(normas, modelo):
+    otra = normas / "otra-version"
+    otra.mkdir()
+    for p in normas.glob("*.md"):
+        (otra / p.name).write_text(p.read_text(), encoding="utf-8")
+    (otra / "parametros.yaml").write_text(
+        (normas / "parametros.yaml").read_text().replace("valor: 70", "valor: 99"), encoding="utf-8")
+    primero = hibrido.BuscadorHibrido(normas, modo="denso")
+    segundo = hibrido.BuscadorHibrido(otra, modo="denso")
+    a = primero.recuperar("pacientes mayores", 3)
+    b = segundo.recuperar("pacientes mayores", 3)
+    assert any("70 años" in c.texto for c in a)
+    assert any("99 años" in c.texto for c in b)
+    assert primero.recuperar("pacientes mayores", 3) == a
+    assert segundo.recuperar("pacientes mayores", 3) == b
+
+
+def test_cache_no_expone_la_lista_guardada(normas, modelo):
+    buscador = hibrido.BuscadorHibrido(normas, modo="denso")
+    modelo.textos.clear()
+    salida = buscador.recuperar("fiebre", 3)
+    esperado = salida.copy()
+    salida.clear()
+    assert buscador.recuperar("fiebre", 3) == esperado
+    assert modelo.textos == ["query: fiebre"]
+
+
+def test_cache_descarta_entradas_antiguas_al_superar_128(normas, modelo):
+    buscador = hibrido.BuscadorHibrido(normas, modo="denso")
+    modelo.textos.clear()
+    for i in range(129):
+        buscador.recuperar(f"consulta {i}", 1)
+    buscador.recuperar("consulta 128", 1)
+    buscador.recuperar("consulta 0", 1)
+    assert modelo.textos.count("query: consulta 128") == 1
+    assert modelo.textos.count("query: consulta 0") == 2

@@ -272,6 +272,29 @@ a 512 y 0,983 a 1024. Sigue fallando en 5 de las 12 consultas coloquiales (recal
 
 En un M1 Max, armar el buscador tarda 7 s (81 chunks) y cada búsqueda unos 100 ms en CPU.
 
+### Medición local y caché de consultas repetidas
+
+Como control secundario, repetimos la medición del buscador en una MacBook Pro M5
+(`evaluacion.medir_buscador`, tres pasadas, 60 consultas de desarrollo). La mediana
+por consulta fue 39 ms en CPU y 20 ms con Metal. Las tres configuraciones dieron
+las mismas métricas (recall 0,883, precisión 0,339, 270 tokens, 52/60) y el mismo
+texto y orden en cada resultado. Son tiempos locales, no de la A100; la entrega no
+cambia de dispositivo. Los JSON están en `evaluacion/corridas/buscador-m5-*.json`.
+
+Lo que sí sirvió de esa medición: las 152 búsquedas de `entrega-original` tienen
+solo **14 consultas distintas**, y en b y c, 172 búsquedas y 9 distintas. Por eso
+agregamos a `BuscadorHibrido` una caché LRU de 128 entradas **por instancia**, con
+consulta, `k` y modo como clave. No se comparte entre versiones de normas y
+devuelve una lista nueva en cada llamada. Los tests están en `tests/test_hibrido.py`.
+
+`evaluacion.validar_cache` arma el buscador de `entrega.py` y reproduce las 496
+búsquedas guardadas con y sin caché: el texto y el orden son idénticos, se evitan
+464 cálculos y las métricas de desarrollo no cambian
+(`evaluacion/corridas/cache-entrega.json`). **No medimos todavía el agente
+completo con la caché en la A100**; el ahorro por caso sigue pendiente. El
+experimento previo, con consultas adicionales y secciones enteras, está en
+[`evaluacion/EXPERIMENTO_RAG.md`](evaluacion/EXPERIMENTO_RAG.md).
+
 Dos salvedades:
 
 - Elegimos el modelo y `k` mirando estas 60 consultas, que son las mismas con las que lo medimos.
@@ -664,6 +687,10 @@ los 50 casos de cada versión juegan en un solo lote en unos 22 s, o sea **0,42 
 con 6,5 a 6,8 llamadas y 3,3 búsquedas por caso y 16.416 tokens de contexto por caso. Armar el
 buscador tarda unos 5 s; cargar el agente, de 119 a 254 s (más la primera vez, que baja los pesos).
 **Costo por caso: 0,44 s × 0,000583 = USD 0,00026**, sin contar la carga.
+
+Estas corridas son anteriores a la caché de resultados del buscador. La validación
+local de la caché está en la Parte 2; todavía no medimos el agente completo con
+ella en la A100.
 
 **Capacidad** (`evaluacion/capacidad.py`, casos generados con semilla 1, normas originales,
 `evaluacion/corridas/capacidad-entrega/capacidad.json`):
