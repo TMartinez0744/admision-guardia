@@ -102,6 +102,8 @@ def main():
         carga = time.perf_counter() - desde
         desde = time.perf_counter()
         buscador = hibrido.BuscadorHibrido(normas, modelo="bge-m3", modo="denso", k_entorno=3)
+        # Mantener el protocolo sin caché de las mediciones originales.
+        buscador._recuperar = buscador._recuperar.__wrapped__
         sincronizar()
         indice = time.perf_counter() - desde
         assert len(buscador.chunks) == 81

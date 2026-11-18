@@ -18,6 +18,7 @@ ese lugar al limitar la memoria de vLLM.
 
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 
 import torch
@@ -58,6 +59,8 @@ class BuscadorHibrido:
         nombre, revision, self.prefijo_consulta, prefijo_pasaje = MODELOS[modelo]
         self.modelo = _cargar(nombre, revision)
         self.vectores = self.modelo.encode([prefijo_pasaje + c.texto for c in self.chunks], normalize_embeddings=True)
+        # Cada instancia conserva su corpus y modelo; no compartir resultados entre normas.
+        self._recuperar = lru_cache(maxsize=128)(self._recuperar)
 
     def ranking_bm25(self, consulta: str) -> list[int]:
         palabras = normalizar(consulta)
@@ -70,9 +73,12 @@ class BuscadorHibrido:
         return sorted(range(len(self.chunks)), key=lambda i: (-similitudes[i], i))
 
     def recuperar(self, consulta: str, k: int):
-        if self.modo == "bm25":
+        return list(self._recuperar(consulta, k, self.modo))
+
+    def _recuperar(self, consulta: str, k: int, modo: str):
+        if modo == "bm25":
             orden = self.ranking_bm25(consulta)
-        elif self.modo == "denso":
+        elif modo == "denso":
             orden = self.ranking_denso(consulta)
         else:
             puntajes = [0.0] * len(self.chunks)
@@ -80,4 +86,4 @@ class BuscadorHibrido:
                 for rango, i in enumerate(ranking):
                     puntajes[i] += 1 / (RRF_K + rango + 1)
             orden = sorted(range(len(self.chunks)), key=lambda i: (-puntajes[i], i))
-        return [self.chunks[i] for i in orden[:k]]
+        return tuple(self.chunks[i] for i in orden[:k])

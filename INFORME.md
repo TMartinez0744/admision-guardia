@@ -322,9 +322,36 @@ Los tiempos son medianas de tres pasadas. El texto y el orden fueron idénticos
 con y sin caché en todas ellas. Es una oportunidad para evitar cómputo repetido:
 138 de las 152 llamadas reutilizan una consulta anterior. La caché debe quedar
 ligada a una instancia con las mismas normas, modelo y configuración.
-No la incorporamos a `entrega.py`: estas pruebas reproducen las búsquedas
-guardadas, **no ejecutan el agente completo ni miden la A100**. El ahorro total
-por caso y la calidad del agente con esa optimización siguen pendientes.
+
+**Implementación en la entrega.** Después del experimento incorporamos una caché
+LRU de 128 entradas por instancia a `BuscadorHibrido`, que ya usa `entrega.py`.
+La clave incluye consulta, `k` y modo: el comparador cambia entre BM25, denso e
+híbrido sobre el mismo objeto. La caché no se comparte entre versiones de normas;
+si se cambian el corpus o el modelo se construye un buscador nuevo. Se guardan
+tuplas de chunks inmutables y se devuelve una lista nueva, para que un consumidor
+no altere el resultado guardado. Al superar el límite se descarta la entrada que
+lleva más tiempo sin usarse. No agregamos dependencias.
+
+Los tests de `tests/test_hibrido.py` cubren reutilización, cambios de consulta,
+`k` y modo, aislamiento de los parámetros de dos corpus, protección de la lista y
+evicción al superar 128 entradas. El medidor local desactiva la caché interna
+para conservar su comparación explícita original. Los JSON de M5 de arriba
+corresponden al experimento previo a esta implementación (medidor en `ae5ca6c`).
+
+La implementación se verifica con `evaluacion.validar_cache`, que construye el
+buscador real de la entrega y reproduce las consultas guardadas con y sin caché,
+con una instancia nueva por versión de normas. Esas pruebas **no ejecutan el
+agente completo ni miden la A100**. El ahorro total por caso y la calidad del
+agente con esa optimización siguen pendientes.
+
+La validación de la implementación (`evaluacion/corridas/cache-entrega.json`),
+en CPU con 4 hilos, conservó los resultados de las **496 búsquedas** y evitó
+464 cálculos: original, 152 llamadas con 14 cálculos y 138 reutilizaciones;
+b y c, 172 llamadas con 9 cálculos y 163 reutilizaciones cada una. Con las
+60 consultas de desarrollo originales, ambas variantes conservaron recall
+0,883, precisión 0,339, 270 tokens y 52 consultas completas. Los tiempos de esta
+reproducción única están en el JSON; no reemplazan las medianas del experimento
+anterior ni son tiempos por paciente del agente completo.
 
 Los comandos están en README, sección 3. Los resultados crudos, tiempos por
 consulta, rankings y hashes del script, consultas y normas están en
@@ -723,6 +750,10 @@ los 50 casos de cada versión juegan en un solo lote en unos 22 s, o sea **0,42 
 con 6,5 a 6,8 llamadas y 3,3 búsquedas por caso y 16.416 tokens de contexto por caso. Armar el
 buscador tarda unos 5 s; cargar el agente, de 119 a 254 s (más la primera vez, que baja los pesos).
 **Costo por caso: 0,44 s × 0,000583 = USD 0,00026**, sin contar la carga.
+
+Estas corridas son anteriores a la caché de resultados del buscador. La validación
+local de la caché está en la Parte 2; todavía no medimos el agente completo con
+ella en la A100.
 
 **Capacidad** (`evaluacion/capacidad.py`, casos generados con semilla 1, normas originales,
 `evaluacion/corridas/capacidad-entrega/capacidad.json`):

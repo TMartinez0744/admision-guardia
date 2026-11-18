@@ -13,6 +13,9 @@ Trabajo final — Inteligencia Artificial Generativa — Universidad Austral —
 original, b y c (referencia de la cátedra con SFT: 25, 24, 25), a 0,44 s y USD 0,00026 por caso en
 una A100 de 40 GB. Detalle en `INFORME.md`.
 
+Esas corridas son anteriores a la caché del buscador. La caché ya está incorporada
+y validada localmente; falta volver a medir el agente completo en A100 con ella.
+
 Integrantes:
 
 - Celina Arias Duval — cariasduval@mail.austral.edu.ar — `cmariasduval`
@@ -140,6 +143,24 @@ rankings, y reproducción de las 152 búsquedas originales con y sin caché. Los
 hashes permiten comparar texto y orden de lo recuperado entre dispositivos.
 Son tiempos del buscador local; no representan al agente completo ni a la A100.
 
+### Caché del buscador de la entrega
+
+`BuscadorHibrido.recuperar` conserva hasta 128 resultados por instancia, con
+consulta, `k` y modo como clave. Las normas y el modelo quedan fijados al construir
+el buscador; para cambiarlos se crea otro. La caché empieza vacía y no se comparte
+entre versiones de normas. Cada llamada devuelve una lista nueva.
+
+`evaluacion.validar_cache` reproduce las búsquedas guardadas de original, b y c
+con el buscador de `entrega.py`, y comprueba que la caché conserve texto y orden.
+Usar el mismo entorno del comando anterior, reemplazando su última línea por
+`python -m evaluacion.validar_cache`, sin los argumentos de dispositivo e hilos.
+La validación corre en CPU con 4 hilos en esta Mac y escribe
+`evaluacion/corridas/cache-entrega.json`. No carga el modelo privado del agente.
+
+El medidor de M5 desactiva la caché interna antes de su comparación explícita,
+para que la variante «sin caché» siga recalculando cada consulta. Las mediciones
+de M5 guardadas corresponden al medidor original del commit `ae5ca6c`.
+
 ## 4. La evaluación completa
 
 Los 50 casos de práctica con las normas original, b y c, que producen la tabla del informe:
@@ -176,7 +197,7 @@ Cada parte tiene tests en `tests/`. Ninguno necesita GPU:
 | Parte | Qué se prueba | Archivo |
 |---|---|---|
 | 1 | reglas de curado, costumbres, clasificación del historial, el CSV y las conversaciones | `test_reglas.py`, `test_costumbres.py`, `test_curado_archivos.py` |
-| 2 | cómo se parten las normas, BM25, la fusión del híbrido y la reutilización exacta de consultas | `test_buscador.py`, `test_hibrido.py`, `test_medir_buscador.py` |
+| 2 | cómo se parten las normas, BM25, la fusión del híbrido, caché acotada por instancia y aislamiento entre normas y modos | `test_buscador.py`, `test_hibrido.py`, `test_medir_buscador.py` |
 | 3 | los archivos de prompt (el contrato fijo, la regla del voluntariado) y el agente | `test_prompt.py` |
 | 4 | la ficha de `curado.etiquetar`, el operador experto y la máscara del asistente | `test_etiquetar.py`, `test_datos.py`, `test_preparacion.py` |
 | 5 | la lectura de corridas y las cuentas de `evaluacion.estadistica` | `test_lectura.py`, `test_estadistica.py` |
@@ -194,6 +215,7 @@ Qué código, qué punto de control y qué prompt usó cada corrida de evaluaci�
 
 | Archivo | Lo genera | Configuración y semilla |
 |---|---|---|
+| `evaluacion/corridas/cache-entrega.json` | `python -m evaluacion.validar_cache` (entorno en sección 3) | consultas guardadas de original, b y c, caché vacía por versión; sin generación aleatoria |
 | `evaluacion/corridas/buscador-m5-<dispositivo>-<hilos>.json` | `python -m evaluacion.medir_buscador --dispositivo <cpu\|mps> --hilos <n>` (entorno y comando completos en sección 3) | bge-m3 con revisión fija, float32, k=3, normas originales, tres pasadas; sin generación aleatoria |
 | `historial_clasificado.csv` | `uv run python -m curado.clasificar` | sin aleatoriedad |
 | `datos/conversaciones.jsonl` | `uv run python -m curado.conversaciones` | sin aleatoriedad |
