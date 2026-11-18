@@ -13,8 +13,9 @@ Trabajo final — Inteligencia Artificial Generativa — Universidad Austral —
 original, b y c (referencia de la cátedra con SFT: 25, 24, 25), a 0,44 s y USD 0,00026 por caso en
 una A100 de 40 GB. Detalle en `INFORME.md`.
 
-Esas corridas son anteriores a la caché del buscador. La caché ya está incorporada
-y validada localmente; falta volver a medir el agente completo en A100 con ella.
+El buscador tiene una caché de búsquedas repetidas que evita el 94 % de los
+cálculos de embeddings sin cambiar ninguna entrada del modelo
+(`evaluacion.validar_trazas`), con una proyección de unos 0,40 s por caso.
 
 Integrantes:
 
@@ -137,6 +138,8 @@ Con el mismo entorno, cambiando el módulo final:
 
 - `evaluacion.validar_cache`: comprueba que la caché del buscador de `entrega.py`
   no cambia texto ni orden en las búsquedas guardadas de original, b y c.
+- `evaluacion.validar_trazas`: comprueba que cada observación de `buscar_normativa`
+  de las corridas `entrega-*` sale igual del buscador actual, con caché.
 - `evaluacion.medir_buscador --dispositivo <cpu|mps> --hilos <n>`: latencias en CPU
   o Metal (mediciones guardadas con el medidor del commit `ae5ca6c`).
 - `evaluacion.diagnostico_rag` y `evaluacion.cache_rag`: el experimento de
@@ -198,6 +201,7 @@ Qué código, qué punto de control y qué prompt usó cada corrida de evaluaci�
 
 | Archivo | Lo genera | Configuración y semilla |
 |---|---|---|
+| `evaluacion/corridas/trazas-entrega.json` | `python -m evaluacion.validar_trazas` (entorno en sección 3) | las 496 búsquedas de `entrega-{original,b,c}`; sin generación aleatoria |
 | `evaluacion/corridas/cache-entrega.json` | `python -m evaluacion.validar_cache` (entorno en sección 3) | consultas guardadas de original, b y c, caché vacía por versión; sin generación aleatoria |
 | `evaluacion/corridas/buscador-m5-<dispositivo>-<hilos>.json` | `python -m evaluacion.medir_buscador --dispositivo <cpu\|mps> --hilos <n>` (entorno y comando completos en sección 3) | bge-m3 con revisión fija, float32, k=3, normas originales, tres pasadas; sin generación aleatoria |
 | `evaluacion/corridas/diagnostico-rag.json` | `python -m evaluacion.diagnostico_rag` (entorno en sección 3) | bge-m3 con revisión fija, normas originales, 60 consultas de desarrollo + 16 de `evaluacion/consultas_rag_adicionales.json`; sin generación aleatoria |

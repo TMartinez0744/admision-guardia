@@ -272,27 +272,39 @@ a 512 y 0,983 a 1024. Sigue fallando en 5 de las 12 consultas coloquiales (recal
 
 En un M1 Max, armar el buscador tarda 7 s (81 chunks) y cada búsqueda unos 100 ms en CPU.
 
-### Medición local y caché de consultas repetidas
+### Caché de búsquedas repetidas
 
-Como control secundario, repetimos la medición del buscador en una MacBook Pro M5
-(`evaluacion.medir_buscador`, tres pasadas, 60 consultas de desarrollo). La mediana
-por consulta fue 39 ms en CPU y 20 ms con Metal. Las tres configuraciones dieron
-las mismas métricas (recall 0,883, precisión 0,339, 270 tokens, 52/60) y el mismo
-texto y orden en cada resultado. Son tiempos locales, no de la A100; la entrega no
-cambia de dispositivo. Los JSON están en `evaluacion/corridas/buscador-m5-*.json`.
+Al revisar las trazas finales vimos que el agente repite casi siempre las mismas
+búsquedas: las 152 de `entrega-original` son **14 consultas distintas**, y las 172
+de b y de c, **9**. Calcular otra vez el embedding de una consulta ya vista es
+trabajo tirado, así que agregamos a `BuscadorHibrido` una caché LRU de 128 entradas
+**por instancia**, con consulta, `k` y modo como clave. Cada versión de normas tiene
+su propio buscador, así que la caché nunca mezcla resultados de normas distintas.
+Los tests están en `tests/test_hibrido.py`.
 
-Lo que sí sirvió de esa medición: las 152 búsquedas de `entrega-original` tienen
-solo **14 consultas distintas**, y en b y c, 172 búsquedas y 9 distintas. Por eso
-agregamos a `BuscadorHibrido` una caché LRU de 128 entradas **por instancia**, con
-consulta, `k` y modo como clave. No se comparte entre versiones de normas y
-devuelve una lista nueva en cada llamada. Los tests están en `tests/test_hibrido.py`.
+**Evita el 94 % de los cálculos sin cambiar nada de lo que ve el modelo.** Lo
+comprobamos de dos maneras, sin necesidad del modelo del agente:
 
-`evaluacion.validar_cache` arma el buscador de `entrega.py` y reproduce las 496
-búsquedas guardadas con y sin caché: el texto y el orden son idénticos, se evitan
-464 cálculos y las métricas de desarrollo no cambian
-(`evaluacion/corridas/cache-entrega.json`). **No medimos todavía el agente
-completo con la caché en la A100**; el ahorro por caso sigue pendiente. El
-experimento previo, con consultas adicionales y secciones enteras, está en
+- `evaluacion.validar_cache` reproduce las 496 búsquedas guardadas con y sin caché:
+  el texto y el orden son idénticos, se calculan 32 en vez de 496 y las métricas de
+  desarrollo no cambian (`evaluacion/corridas/cache-entrega.json`).
+- `evaluacion.validar_trazas` toma cada `buscar_normativa` de las 150 trazas de
+  `entrega-*` y comprueba que el buscador actual, con caché, devuelve la misma
+  observación, byte a byte, que figura en los mensajes del modelo. Coinciden las 496
+  (`evaluacion/corridas/trazas-entrega.json`). Con decodificación greedy, el modelo
+  recibe la misma entrada en cada paso: los 49, 50 y 50 casos de la entrega valen
+  tal cual para el código con caché.
+
+**Proyección de tiempo.** Con los 14 ms por consulta medidos en la A100 (Parte 5),
+la caché ahorra unos 1,9 s de buscador en los 50 casos de original y 2,3 s en b y c,
+sobre unos 22 s por versión: hasta un 10 %, de 0,44 a unos 0,40 s por caso. Es el
+máximo si cada búsqueda frena el lote. La ganancia crece en producción, donde los
+casos de un turno repiten las mismas preguntas sobre las mismas normas.
+
+Antes de esto medimos el buscador en una MacBook Pro M5 (`evaluacion.medir_buscador`):
+39 ms por consulta en CPU y 20 ms con Metal, con las mismas métricas y el mismo orden
+en todas las configuraciones (`evaluacion/corridas/buscador-m5-*.json`). El
+experimento con consultas adicionales y secciones enteras está en
 [`evaluacion/EXPERIMENTO_RAG.md`](evaluacion/EXPERIMENTO_RAG.md).
 
 Dos salvedades:
@@ -688,9 +700,8 @@ con 6,5 a 6,8 llamadas y 3,3 búsquedas por caso y 16.416 tokens de contexto por
 buscador tarda unos 5 s; cargar el agente, de 119 a 254 s (más la primera vez, que baja los pesos).
 **Costo por caso: 0,44 s × 0,000583 = USD 0,00026**, sin contar la carga.
 
-Estas corridas son anteriores a la caché de resultados del buscador. La validación
-local de la caché está en la Parte 2; todavía no medimos el agente completo con
-ella en la A100.
+Con la caché de búsquedas de la Parte 2, que no cambia ninguna entrada del modelo
+(`evaluacion.validar_trazas`), la proyección baja a unos 0,40 s por caso.
 
 **Capacidad** (`evaluacion/capacidad.py`, casos generados con semilla 1, normas originales,
 `evaluacion/corridas/capacidad-entrega/capacidad.json`):
