@@ -272,91 +272,28 @@ a 512 y 0,983 a 1024. Sigue fallando en 5 de las 12 consultas coloquiales (recal
 
 En un M1 Max, armar el buscador tarda 7 s (81 chunks) y cada búsqueda unos 100 ms en CPU.
 
-### Medición adicional en M5: CPU, Metal y consultas repetidas
+### Medición local y caché de consultas repetidas
 
-El 17/11 repetimos la medición en una **MacBook Pro M5, 10 núcleos y 32 GB**,
-con `evaluacion.medir_buscador`. Se conservaron los 81 párrafos de las normas
-originales, bge-m3 en la revisión fijada en `buscador.hibrido.MODELOS`, float32
-y `k = 3`. Cada configuración corrió sola, con tres cargas del modelo en el
-mismo proceso y tres consultas de calentamiento antes de medir. Los pesos ya
-estaban descargados: la construcción incluye cargar el modelo e indexar los
-párrafos, pero excluye descargas e importar las bibliotecas.
+Como control secundario, repetimos la medición del buscador en una MacBook Pro M5
+(`evaluacion.medir_buscador`, tres pasadas, 60 consultas de desarrollo). La mediana
+por consulta fue 39 ms en CPU y 20 ms con Metal. Las tres configuraciones dieron
+las mismas métricas (recall 0,883, precisión 0,339, 270 tokens, 52/60) y el mismo
+texto y orden en cada resultado. Son tiempos locales, no de la A100; la entrega no
+cambia de dispositivo. Los JSON están en `evaluacion/corridas/buscador-m5-*.json`.
 
-Las latencias se midieron sobre las **60 consultas distintas de desarrollo**, una
-por llamada, sin caché. Para cada configuración reportamos la mediana de los tres
-tiempos de construcción y de las tres medianas y percentiles 95 de latencia:
+Lo que sí sirvió de esa medición: las 152 búsquedas de `entrega-original` tienen
+solo **14 consultas distintas**, y en b y c, 172 búsquedas y 9 distintas. Por eso
+agregamos a `BuscadorHibrido` una caché LRU de 128 entradas **por instancia**, con
+consulta, `k` y modo como clave. No se comparte entre versiones de normas y
+devuelve una lista nueva en cada llamada. Los tests están en `tests/test_hibrido.py`.
 
-| Dispositivo | Hilos CPU | Construcción | Consulta, mediana | Consulta, p95 |
-|---|---|---|---|---|
-| CPU | 1 | 5,83 s | 38,97 ms | 43,45 ms |
-| CPU | 4 | 4,64 s | 39,32 ms | 45,74 ms |
-| Metal (MPS) | 4 | 2,95 s | 20,25 ms | 22,69 ms |
-
-Metal redujo casi a la mitad la latencia frente a CPU con 4 hilos. Subir de 1 a
-4 hilos mejoró la indexación, pero no las consultas individuales. La primera
-construcción en CPU con 1 hilo tardó 9,20 s, contra 5,83 y 5,76 s en las
-siguientes: el estado de las cachés de archivos también importa.
-La cifra previa del M1 Max es orientativa; sin repetir allí este mismo protocolo,
-con iguales versiones e hilos, no podemos atribuir la diferencia solo al chip.
-
-**Calidad y orden conservados en lo medido:** las tres configuraciones dieron
-recall 0,883, precisión 0,339, 270 tokens y 52/60 consultas completas. No cambió
-el texto ni el orden de ninguno de los tres párrafos recuperados para las 60
-consultas de desarrollo ni para las 14 consultas distintas de las trazas finales
-con normas originales. No se afirma igualdad de los vectores, sino de los
-resultados que recibe el agente. El ranking de similitudes sigue en NumPy/CPU;
-Metal acelera el modelo de embeddings. Esta selección de dispositivo se hace
-solo en el experimento, sin modificar el buscador de la entrega.
-
-También reprodujimos las **152 búsquedas** de `entrega-original`, con y sin
-`functools.lru_cache(maxsize=128)` sobre `recuperar`. La caché empezó vacía en
-cada pasada y se alternó cuál variante se medía primero:
-
-| Dispositivo | Sin caché, 152 búsquedas | Con caché | Recuperaciones efectivas |
-|---|---|---|---|
-| CPU, 1 hilo | 5,83 s | 0,55 s | 14 en vez de 152 |
-| CPU, 4 hilos | 5,95 s | 0,55 s | 14 en vez de 152 |
-| Metal, 4 hilos CPU | 2,92 s | 0,26 s | 14 en vez de 152 |
-
-Los tiempos son medianas de tres pasadas. El texto y el orden fueron idénticos
-con y sin caché en todas ellas. Es una oportunidad para evitar cómputo repetido:
-138 de las 152 llamadas reutilizan una consulta anterior. La caché debe quedar
-ligada a una instancia con las mismas normas, modelo y configuración.
-
-**Implementación en la entrega.** Después del experimento incorporamos una caché
-LRU de 128 entradas por instancia a `BuscadorHibrido`, que ya usa `entrega.py`.
-La clave incluye consulta, `k` y modo: el comparador cambia entre BM25, denso e
-híbrido sobre el mismo objeto. La caché no se comparte entre versiones de normas;
-si se cambian el corpus o el modelo se construye un buscador nuevo. Se guardan
-tuplas de chunks inmutables y se devuelve una lista nueva, para que un consumidor
-no altere el resultado guardado. Al superar el límite se descarta la entrada que
-lleva más tiempo sin usarse. No agregamos dependencias.
-
-Los tests de `tests/test_hibrido.py` cubren reutilización, cambios de consulta,
-`k` y modo, aislamiento de los parámetros de dos corpus, protección de la lista y
-evicción al superar 128 entradas. El medidor local desactiva la caché interna
-para conservar su comparación explícita original. Los JSON de M5 de arriba
-corresponden al experimento previo a esta implementación (medidor en `ae5ca6c`).
-
-La implementación se verifica con `evaluacion.validar_cache`, que construye el
-buscador real de la entrega y reproduce las consultas guardadas con y sin caché,
-con una instancia nueva por versión de normas. Esas pruebas **no ejecutan el
-agente completo ni miden la A100**. El ahorro total por caso y la calidad del
-agente con esa optimización siguen pendientes.
-
-La validación de la implementación (`evaluacion/corridas/cache-entrega.json`),
-en CPU con 4 hilos, conservó los resultados de las **496 búsquedas** y evitó
-464 cálculos: original, 152 llamadas con 14 cálculos y 138 reutilizaciones;
-b y c, 172 llamadas con 9 cálculos y 163 reutilizaciones cada una. Con las
-60 consultas de desarrollo originales, ambas variantes conservaron recall
-0,883, precisión 0,339, 270 tokens y 52 consultas completas. Los tiempos de esta
-reproducción única están en el JSON; no reemplazan las medianas del experimento
-anterior ni son tiempos por paciente del agente completo.
-
-Los comandos están en README, sección 3. Los resultados crudos, tiempos por
-consulta, rankings y hashes del script, consultas y normas están en
-`evaluacion/corridas/buscador-m5-{cpu-1,cpu-4,mps-4}.json`, con las versiones del
-entorno. El experimento no necesita el modelo privado de Hugging Face.
+`evaluacion.validar_cache` arma el buscador de `entrega.py` y reproduce las 496
+búsquedas guardadas con y sin caché: el texto y el orden son idénticos, se evitan
+464 cálculos y las métricas de desarrollo no cambian
+(`evaluacion/corridas/cache-entrega.json`). **No medimos todavía el agente
+completo con la caché en la A100**; el ahorro por caso sigue pendiente. El
+experimento previo, con consultas adicionales y secciones enteras, está en
+[`evaluacion/EXPERIMENTO_RAG.md`](evaluacion/EXPERIMENTO_RAG.md).
 
 Dos salvedades:
 

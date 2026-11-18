@@ -120,46 +120,29 @@ uv run python -m admision.evaluar_rag --entrega entrega.py \
     --normas <kit>/normas/original --consultas <kit>/rag/consultas_dev.jsonl
 ```
 
-### Medición local en Apple Silicon
+### Mediciones locales del buscador (opcionales)
 
-`evaluacion.medir_buscador` compara el mismo bge-m3 en CPU y Metal, sin cargar el
-modelo privado del agente ni cambiar `entrega.py`. Primero ejecutar la evaluación
-del buscador de arriba para descargar los pesos públicos. Después, desde la raíz
-del repo, con el kit al lado:
+Sin GPU ni el modelo privado del agente, desde la raíz del repo y con el kit al
+lado. Primero ejecutar la evaluación de arriba para descargar bge-m3:
 
 ```bash
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONPATH=../talksmith-ing/missions/TPFinal:. \
 uv run --no-project --python 3.12 \
     --with sentence-transformers==6.2.0 --with torch==2.15.0 \
     --with transformers==5.23.0 --with numpy==2.5.5 --with pyyaml==6.0.3 \
-    python -m evaluacion.medir_buscador --dispositivo cpu --hilos 4
+    python -m evaluacion.validar_cache
 ```
 
-Repetir con `--dispositivo cpu --hilos 1` y `--dispositivo mps --hilos 4`, de a un
-proceso por vez. Cada ejecución hace tres pasadas y escribe
-`evaluacion/corridas/buscador-m5-<dispositivo>-<hilos>.json`: carga del modelo,
-indexación, latencias individuales de las 60 consultas de desarrollo, métricas y
-rankings, y reproducción de las 152 búsquedas originales con y sin caché. Los
-hashes permiten comparar texto y orden de lo recuperado entre dispositivos.
-Son tiempos del buscador local; no representan al agente completo ni a la A100.
+Con el mismo entorno, cambiando el módulo final:
 
-### Caché del buscador de la entrega
+- `evaluacion.validar_cache`: comprueba que la caché del buscador de `entrega.py`
+  no cambia texto ni orden en las búsquedas guardadas de original, b y c.
+- `evaluacion.medir_buscador --dispositivo <cpu|mps> --hilos <n>`: latencias en CPU
+  o Metal (mediciones guardadas con el medidor del commit `ae5ca6c`).
+- `evaluacion.diagnostico_rag` y `evaluacion.cache_rag`: el experimento de
+  `evaluacion/EXPERIMENTO_RAG.md`.
 
-`BuscadorHibrido.recuperar` conserva hasta 128 resultados por instancia, con
-consulta, `k` y modo como clave. Las normas y el modelo quedan fijados al construir
-el buscador; para cambiarlos se crea otro. La caché empieza vacía y no se comparte
-entre versiones de normas. Cada llamada devuelve una lista nueva.
-
-`evaluacion.validar_cache` reproduce las búsquedas guardadas de original, b y c
-con el buscador de `entrega.py`, y comprueba que la caché conserve texto y orden.
-Usar el mismo entorno del comando anterior, reemplazando su última línea por
-`python -m evaluacion.validar_cache`, sin los argumentos de dispositivo e hilos.
-La validación corre en CPU con 4 hilos en esta Mac y escribe
-`evaluacion/corridas/cache-entrega.json`. No carga el modelo privado del agente.
-
-El medidor de M5 desactiva la caché interna antes de su comparación explícita,
-para que la variante «sin caché» siga recalculando cada consulta. Las mediciones
-de M5 guardadas corresponden al medidor original del commit `ae5ca6c`.
+Son tiempos locales, no representan al agente completo ni a la A100.
 
 ## 4. La evaluación completa
 
@@ -217,6 +200,8 @@ Qué código, qué punto de control y qué prompt usó cada corrida de evaluaci�
 |---|---|---|
 | `evaluacion/corridas/cache-entrega.json` | `python -m evaluacion.validar_cache` (entorno en sección 3) | consultas guardadas de original, b y c, caché vacía por versión; sin generación aleatoria |
 | `evaluacion/corridas/buscador-m5-<dispositivo>-<hilos>.json` | `python -m evaluacion.medir_buscador --dispositivo <cpu\|mps> --hilos <n>` (entorno y comando completos en sección 3) | bge-m3 con revisión fija, float32, k=3, normas originales, tres pasadas; sin generación aleatoria |
+| `evaluacion/corridas/diagnostico-rag.json` | `python -m evaluacion.diagnostico_rag` (entorno en sección 3) | bge-m3 con revisión fija, normas originales, 60 consultas de desarrollo + 16 de `evaluacion/consultas_rag_adicionales.json`; sin generación aleatoria |
+| `evaluacion/corridas/cache-rag.json` | `python -m evaluacion.cache_rag` (entorno en sección 3) | 152 búsquedas de `entrega-original`, CPU 4 hilos, mediana de tres pasadas; sin generación aleatoria |
 | `historial_clasificado.csv` | `uv run python -m curado.clasificar` | sin aleatoriedad |
 | `datos/conversaciones.jsonl` | `uv run python -m curado.conversaciones` | sin aleatoriedad |
 | `prompt/sistema_optimizado.txt` | `uv run python -m prompt.optimizar --kit <kit> --salida corridas/gepa` | semilla 0, 60 + 40 casos generados, 600 casos jugados |
