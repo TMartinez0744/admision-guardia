@@ -182,7 +182,7 @@ Cada parte tiene tests en `tests/`. Ninguno necesita GPU:
 
 | Parte | Qué se prueba | Archivo |
 |---|---|---|
-| 1 | reglas de curado, costumbres, clasificación del historial, el CSV y las conversaciones | `test_reglas.py`, `test_costumbres.py`, `test_curado_archivos.py` |
+| 1 | reglas de curado, costumbres, clasificación del historial, el CSV, las conversaciones y la evidencia de las costumbres | `test_reglas.py`, `test_costumbres.py`, `test_curado_archivos.py`, `test_evidencia.py` |
 | 2 | cómo se parten las normas, BM25, la fusión del híbrido, caché acotada por instancia y aislamiento entre normas y modos | `test_buscador.py`, `test_hibrido.py`, `test_medir_buscador.py` |
 | 3 | los archivos de prompt (el contrato fijo, la regla del voluntariado) y el agente | `test_prompt.py` |
 | 4 | la ficha de `curado.etiquetar`, el operador experto y la máscara del asistente | `test_etiquetar.py`, `test_datos.py`, `test_preparacion.py` |
@@ -207,6 +207,7 @@ Qué código, qué punto de control y qué prompt usó cada corrida de evaluaci�
 | `evaluacion/corridas/diagnostico-rag.json` | `python -m evaluacion.diagnostico_rag` (entorno en sección 3) | bge-m3 con revisión fija, normas originales, 60 consultas de desarrollo + 16 de `evaluacion/consultas_rag_adicionales.json`; sin generación aleatoria |
 | `evaluacion/corridas/cache-rag.json` | `python -m evaluacion.cache_rag` (entorno en sección 3) | 152 búsquedas de `entrega-original`, CPU 4 hilos, mediana de tres pasadas; sin generación aleatoria |
 | `historial_clasificado.csv` | `uv run python -m curado.clasificar` | sin aleatoriedad |
+| los números de `costumbres.md` | `uv run python -m curado.evidencia` (solo imprime) | sin aleatoriedad |
 | `datos/conversaciones.jsonl` | `uv run python -m curado.conversaciones` | sin aleatoriedad |
 | `prompt/sistema_optimizado.txt` | `uv run python -m prompt.optimizar --kit <kit> --salida corridas/gepa` | semilla 0, 60 + 40 casos generados, 600 casos jugados |
 | `datos/entrenamiento-reales.jsonl` | `uv run python -m entrenamiento.datos --kit <kit> --sistema prompt/sistema_optimizado.txt --salida datos/entrenamiento-reales.jsonl` | semilla 0, 1600 reales |

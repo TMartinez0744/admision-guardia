@@ -3,6 +3,7 @@
 Dos situaciones que ninguna norma escrita cubre y que casi todos los operadores resuelven igual.
 Ambas se derivaron de `historial/historial.csv`; el código que las verifica está en
 `curado/costumbres.py` y la clasificación completa la produce `curado/clasificar.py`.
+Los números de este archivo se recalculan con `uv run python -m curado.evidencia`.
 
 ## Costumbre 1 — Aviso al voluntariado con 75 años o más y sin acompañante
 
@@ -41,8 +42,8 @@ pero no dice cuál cuando hay más de una credencial. NOR-COB-01 §4 tampoco: so
 credencial reemplaza la consulta.
 
 **Evidencia.** De las 193 filas con dos credenciales, en **184 (95,3%)** se verificó la prepaga.
-La elección no depende del orden en que figuran: la prepaga estaba primera en 105 casos y segunda
-en 88, y se la verificó igual.
+La elección no depende del orden en que figuran: la prepaga estaba primera en 104 casos y segunda
+en 89, y se la verificó igual.
 
 - La cumplen: `H-0010`, `H-0011`, `H-0021`, `H-0052`, `H-0056`, `H-0075`
 - Se apartan, las nueve: `H-0334`, `H-0404`, `H-0408`, `H-0480`, `H-0792`, `H-0881`, `H-1190`, `H-1467`, `H-1520`
