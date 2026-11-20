@@ -182,7 +182,7 @@ Cada parte tiene tests en `tests/`. Ninguno necesita GPU:
 
 | Parte | Qué se prueba | Archivo |
 |---|---|---|
-| 1 | reglas de curado, costumbres, clasificación del historial, el CSV, las conversaciones y la evidencia de las costumbres | `test_reglas.py`, `test_costumbres.py`, `test_curado_archivos.py`, `test_evidencia.py` |
+| 1 | reglas de curado, costumbres, clasificación del historial, el CSV, las conversaciones, la evidencia de las costumbres y que `costumbres.md` coincida con el historial | `test_reglas.py`, `test_costumbres.py`, `test_curado_archivos.py`, `test_evidencia.py`, `test_costumbres_md.py` |
 | 2 | cómo se parten las normas, BM25, la fusión del híbrido, caché acotada por instancia y aislamiento entre normas y modos | `test_buscador.py`, `test_hibrido.py`, `test_medir_buscador.py` |
 | 3 | los archivos de prompt (el contrato fijo, la regla del voluntariado) y el agente | `test_prompt.py` |
 | 4 | la ficha de `curado.etiquetar`, el operador experto y la máscara del asistente | `test_etiquetar.py`, `test_datos.py`, `test_preparacion.py` |
